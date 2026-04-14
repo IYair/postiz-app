@@ -38,5 +38,5 @@ export const DEFAULT_TEXT_MODELS: Record<TextProviderType, string> = {
 
 export const DEFAULT_IMAGE_MODELS: Record<ImageProviderType, string> = {
   openai: 'dall-e-3',
-  gemini: 'imagen-4.0-generate-001',
+  gemini: 'gemini-3.1-flash-image-preview',
 };

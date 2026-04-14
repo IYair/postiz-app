@@ -35,13 +35,10 @@ const TEXT_MODEL_OPTIONS: Record<string, { value: string; label: string }[]> = {
   ],
   gemini: [
     { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
-    { value: 'gemini-3.0-flash-preview-high', label: 'Gemini 3 Flash (High)' },
-    { value: 'gemini-3.0-pro', label: 'Gemini 3 Pro' },
-    { value: 'gemini-3.0-flash-preview-medium', label: 'Gemini 3 Flash (Medium)' },
-    { value: 'gemini-3.0-deep-think', label: 'Gemini 3 Deep Think' },
+    { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
     { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
     { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-    { value: 'gemini-2.5-flash-preview', label: 'Gemini 2.5 Flash (Preview)' },
+    { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
   ],
 };
 
@@ -49,8 +46,9 @@ const IMAGE_MODEL_OPTIONS: Record<string, { value: string; label: string }[]> =
   {
     openai: [{ value: 'dall-e-3', label: 'DALL-E 3' }],
     gemini: [
-      { value: 'imagen-4.0-generate-001', label: 'Imagen 4' },
-      { value: 'imagen-3.0-generate-002', label: 'Imagen 3' },
+      { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash Image (Preview)' },
+      { value: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro Image (Preview)' },
+      { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image' },
     ],
   };
 
