@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useCallback } from 'react';
+import React, { ReactNode, useCallback, useState, useEffect } from 'react';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 const ModeComponent = dynamic(
@@ -41,6 +41,7 @@ import { StreakComponent } from '@gitroom/frontend/components/layout/streak.comp
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
 import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
 
 const jakartaSans = Plus_Jakarta_Sans({
   weight: ['600', '500', '700'],
@@ -65,6 +66,18 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     refreshWhenOffline: false,
     refreshWhenHidden: false,
   });
+
+  const isMobile = useIsMobile();
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (!(isMobile && navOpen)) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNavOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isMobile, navOpen]);
 
   if (!user) return null;
 
@@ -98,38 +111,87 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
               ) : (
                 <>
                   <AnnouncementBanner />
-                  <div className="flex-1 flex gap-[8px]">
+                  <div className="flex-1 flex gap-[8px] md:gap-[8px]">
                     <Support />
-                    <div className="flex flex-col bg-newBgColorInner w-[80px] rounded-[12px]">
+
+                    {/* Mobile backdrop */}
+                    {isMobile && navOpen && (
                       <div
-                        id="left-menu"
+                        className="fixed inset-0 bg-black/50 z-[9998] md:hidden"
+                        onClick={() => setNavOpen(false)}
+                        aria-hidden="true"
+                      />
+                    )}
+
+                    {/* Left nav rail — desktop: fixed sidebar; mobile: off-canvas drawer */}
+                    <div
+                      className={clsx(
+                        'flex flex-col bg-newBgColorInner rounded-[12px]',
+                        'md:w-[80px]',
+                        'max-md:fixed max-md:inset-y-0 max-md:start-0 max-md:z-[9999] max-md:w-[240px]',
+                        'transition-transform duration-200',
+                        isMobile && !navOpen
+                          ? 'max-md:-translate-x-full rtl:max-md:translate-x-full'
+                          : 'max-md:translate-x-0'
+                      )}
+                      {...(isMobile
+                        ? {
+                            id: 'app-nav-drawer',
+                            role: 'dialog' as const,
+                            'aria-modal': navOpen,
+                            'aria-label': 'Navigation',
+                            'aria-hidden': !navOpen,
+                          }
+                        : { id: 'left-menu' })}
+                    >
+                      <div
                         className={clsx(
-                          'fixed h-full w-[64px] start-[17px] flex flex-1 top-0',
+                          'md:fixed md:h-full md:w-[64px] md:start-[17px] md:flex md:flex-1 md:top-0',
+                          'max-md:flex max-md:flex-col max-md:h-full max-md:w-full',
                           user?.admin && 'pt-[60px] max-h-[1000px]:w-[500px]'
                         )}
                       >
-                        <div className="flex flex-col h-full gap-[32px] flex-1 py-[12px]">
+                        <div className="flex flex-col h-full gap-[32px] flex-1 py-[12px] max-md:px-[12px]">
                           <Logo />
-                          <TopMenu />
+                          <TopMenu onNavigate={isMobile ? () => setNavOpen(false) : undefined} />
                         </div>
                       </div>
                     </div>
-                    <div className="flex-1 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
-                      <div className="flex bg-newBgColorInner h-[80px] px-[20px] items-center">
-                        <div className="text-[24px] font-[600] flex flex-1">
+
+                    {/* Main content area */}
+                    <div className="flex-1 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe min-w-0">
+                      {/* Top bar */}
+                      <div className="flex bg-newBgColorInner h-[56px] md:h-[80px] px-[12px] md:px-[20px] items-center gap-[8px] md:gap-[20px]">
+                        {/* Hamburger — mobile only */}
+                        <button
+                          onClick={() => setNavOpen(true)}
+                          className="md:hidden w-[40px] h-[40px] flex items-center justify-center rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[20px] leading-none text-textItemBlur hover:text-newTextColor shrink-0"
+                          aria-label="Open navigation"
+                          aria-expanded={navOpen}
+                          aria-controls="app-nav-drawer"
+                        >
+                          ☰
+                        </button>
+
+                        {/* Title */}
+                        <div className="text-[24px] font-[600] flex flex-1 min-w-0 truncate">
                           <Title />
                         </div>
-                        <div className="flex gap-[20px] text-textItemBlur">
-                          <StreakComponent />
-                          <div className="w-[1px] h-[20px] bg-blockSeparator" />
-                          <OrganizationSelector />
-                          <div className="hover:text-newTextColor">
-                            <ModeComponent />
+
+                        {/* Top bar icons */}
+                        <div className="flex gap-[8px] md:gap-[20px] text-textItemBlur items-center">
+                          <div className="hidden md:flex items-center gap-[20px]">
+                            <StreakComponent />
+                            <div className="w-[1px] h-[20px] bg-blockSeparator" />
+                            <OrganizationSelector />
+                            <div className="hover:text-newTextColor">
+                              <ModeComponent />
+                            </div>
+                            <div className="w-[1px] h-[20px] bg-blockSeparator" />
                           </div>
-                          <div className="w-[1px] h-[20px] bg-blockSeparator" />
                           <LanguageComponent />
                           <ChromeExtensionComponent />
-                          <div className="w-[1px] h-[20px] bg-blockSeparator" />
+                          <div className="hidden md:block w-[1px] h-[20px] bg-blockSeparator" />
                           <AttachToFeedbackIcon />
                           <NotificationComponent />
                         </div>
