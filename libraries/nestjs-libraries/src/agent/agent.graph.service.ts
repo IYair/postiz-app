@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   BaseMessage,
   HumanMessage,
   ToolMessage,
 } from '@langchain/core/messages';
 import { END, START, StateGraph } from '@langchain/langgraph';
-import { ChatOpenAI, DallEAPIWrapper } from '@langchain/openai';
 import { TavilySearch } from '@langchain/tavily';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
@@ -15,22 +14,14 @@ import { z } from 'zod';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { GeneratorDto } from '@gitroom/nestjs-libraries/dtos/generator/generator.dto';
+import { AiProviderResolver } from '@gitroom/nestjs-libraries/ai/ai.provider-resolver';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { LangChainImageWrapper } from '@gitroom/nestjs-libraries/ai/langchain/langchain-image.wrapper';
 
 const tools = !process.env.TAVILY_API_KEY
   ? []
   : [new TavilySearch({ maxResults: 3 })];
 const toolNode = new ToolNode(tools);
-
-const model = new ChatOpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-  model: 'gpt-4.1',
-  temperature: 0.7,
-});
-
-const dalle = new DallEAPIWrapper({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-  model: 'dall-e-3',
-});
 
 interface WorkflowChannelsState {
   messages: BaseMessage[];
@@ -103,10 +94,12 @@ const contentZod = (
 
 @Injectable()
 export class AgentGraphService {
+  private readonly logger = new Logger(AgentGraphService.name);
   private storage = UploadFactory.createStorage();
   constructor(
     private _postsService: PostsService,
-    private _mediaService: MediaService
+    private _mediaService: MediaService,
+    private _resolver: AiProviderResolver
   ) {}
   static state = () =>
     new StateGraph<WorkflowChannelsState>({
@@ -131,22 +124,24 @@ export class AgentGraphService {
       },
     });
 
-  async startCall(state: WorkflowChannelsState) {
-    const runTools = model.bindTools(tools);
-    const response = await ChatPromptTemplate.fromTemplate(
-      `
+  private makeStartCall(model: BaseChatModel) {
+    return async (state: WorkflowChannelsState) => {
+      const runTools = model.bindTools(tools);
+      const response = await ChatPromptTemplate.fromTemplate(
+        `
     Today is ${dayjs().format()}, You are an assistant that gets a social media post or requests for a social media post.
     You research should be on the most possible recent data.
     You concat the text of the request together with an internet research based on the text.
     {text}
     `
-    )
-      .pipe(runTools)
-      .invoke({
-        text: state.messages[state.messages.length - 1].content,
-      });
+      )
+        .pipe(runTools)
+        .invoke({
+          text: state.messages[state.messages.length - 1].content,
+        });
 
-    return { messages: [response] };
+      return { messages: [response] };
+    };
   }
 
   async saveResearch(state: WorkflowChannelsState) {
@@ -154,51 +149,58 @@ export class AgentGraphService {
     return { fresearch: content };
   }
 
-  async findCategories(state: WorkflowChannelsState) {
-    const allCategories = await this._postsService.findAllExistingCategories();
-    const structuredOutput = model.withStructuredOutput(category);
-    const { category: outputCategory } = await ChatPromptTemplate.fromTemplate(
-      `
+  private makeFindCategories(model: BaseChatModel) {
+    return async (state: WorkflowChannelsState) => {
+      const allCategories =
+        await this._postsService.findAllExistingCategories();
+      const structuredOutput = model.withStructuredOutput(category);
+      const { category: outputCategory } =
+        await ChatPromptTemplate.fromTemplate(
+          `
         You are an assistant that gets a text that will be later summarized into a social media post
         and classify it to one of the following categories: {categories}
         text: {text}
       `
-    )
-      .pipe(structuredOutput)
-      .invoke({
-        categories: allCategories.map((p) => p.category).join(', '),
-        text: state.fresearch,
-      });
+        )
+          .pipe(structuredOutput)
+          .invoke({
+            categories: allCategories.map((p) => p.category).join(', '),
+            text: state.fresearch,
+          });
 
-    return {
-      category: outputCategory,
+      return {
+        category: outputCategory,
+      };
     };
   }
 
-  async findTopic(state: WorkflowChannelsState) {
-    const allTopics = await this._postsService.findAllExistingTopicsOfCategory(
-      state?.category!
-    );
-    if (allTopics.length === 0) {
-      return { topic: null };
-    }
+  private makeFindTopic(model: BaseChatModel) {
+    return async (state: WorkflowChannelsState) => {
+      const allTopics =
+        await this._postsService.findAllExistingTopicsOfCategory(
+          state?.category!
+        );
+      if (allTopics.length === 0) {
+        return { topic: null };
+      }
 
-    const structuredOutput = model.withStructuredOutput(topic);
-    const { topic: outputTopic } = await ChatPromptTemplate.fromTemplate(
-      `
+      const structuredOutput = model.withStructuredOutput(topic);
+      const { topic: outputTopic } = await ChatPromptTemplate.fromTemplate(
+        `
         You are an assistant that gets a text that will be later summarized into a social media post
         and classify it to one of the following topics: {topics}
         text: {text}
       `
-    )
-      .pipe(structuredOutput)
-      .invoke({
-        topics: allTopics.map((p) => p.topic).join(', '),
-        text: state.fresearch,
-      });
+      )
+        .pipe(structuredOutput)
+        .invoke({
+          topics: allTopics.map((p) => p.topic).join(', '),
+          text: state.fresearch,
+        });
 
-    return {
-      topic: outputTopic,
+      return {
+        topic: outputTopic,
+      };
     };
   }
 
@@ -210,10 +212,11 @@ export class AgentGraphService {
     return { popularPosts };
   }
 
-  async generateHook(state: WorkflowChannelsState) {
-    const structuredOutput = model.withStructuredOutput(hook);
-    const { hook: outputHook } = await ChatPromptTemplate.fromTemplate(
-      `
+  private makeGenerateHook(model: BaseChatModel) {
+    return async (state: WorkflowChannelsState) => {
+      const structuredOutput = model.withStructuredOutput(hook);
+      const { hook: outputHook } = await ChatPromptTemplate.fromTemplate(
+        `
         You are an assistant that gets content for a social media post, and generate only the hook.
         The hook is the 1-2 sentences of the post that will be used to grab the attention of the reader.
         You will be provided existing hooks you should use as inspiration.
@@ -229,35 +232,38 @@ export class AgentGraphService {
         <!-- BEGIN request of the user -->
         {request}
         <!-- END request of the user -->
-        
+
         <!-- BEGIN existing hooks -->
         {hooks}
         <!-- END existing hooks -->
-        
+
         <!-- BEGIN current content -->
         {text}
         <!-- END current content -->
-       
-      `
-    )
-      .pipe(structuredOutput)
-      .invoke({
-        request: state.messages[0].content,
-        hooks: state.popularPosts!.map((p) => p.hook).join('\n'),
-        text: state.fresearch,
-      });
 
-    return {
-      hook: outputHook,
+      `
+      )
+        .pipe(structuredOutput)
+        .invoke({
+          request: state.messages[0].content,
+          hooks: state.popularPosts!.map((p) => p.hook).join('\n'),
+          text: state.fresearch,
+        });
+
+      return {
+        hook: outputHook,
+      };
     };
   }
 
-  async generateContent(state: WorkflowChannelsState) {
-    const structuredOutput = model.withStructuredOutput(
-      contentZod(!!state.isPicture, state.format)
-    );
-    const { content: outputContent } = await ChatPromptTemplate.fromTemplate(
-      `
+  private makeGenerateContent(model: BaseChatModel) {
+    return async (state: WorkflowChannelsState) => {
+      const structuredOutput = model.withStructuredOutput(
+        contentZod(!!state.isPicture, state.format)
+      );
+      const { content: outputContent } =
+        await ChatPromptTemplate.fromTemplate(
+          `
         You are an assistant that gets existing hook of a social media, content and generate only the content.
         - Don't add any hashtags
         - Make sure it sounds ${state.tone}
@@ -280,26 +286,27 @@ export class AgentGraphService {
         - Try to put some call to action at the end of the post
         - Make sure you add "\n" between the lines
         - Add "\n" after every "."
-        
+
         Hook:
         {hook}
-        
+
         User request:
         {request}
-        
+
         current content information:
         {information}
       `
-    )
-      .pipe(structuredOutput)
-      .invoke({
-        hook: state.hook,
-        request: state.messages[0].content,
-        information: state.fresearch,
-      });
+        )
+          .pipe(structuredOutput)
+          .invoke({
+            hook: state.hook,
+            request: state.messages[0].content,
+            information: state.fresearch,
+          });
 
-    return {
-      content: outputContent,
+      return {
+        content: outputContent,
+      };
     };
   }
 
@@ -313,23 +320,32 @@ export class AgentGraphService {
     return {};
   }
 
-  async generatePictures(state: WorkflowChannelsState) {
-    if (!state.isPicture) {
-      return {};
-    }
+  private makeGeneratePictures(imageWrapper: LangChainImageWrapper | null) {
+    return async (state: WorkflowChannelsState) => {
+      if (!state.isPicture) {
+        return {};
+      }
 
-    const newContent = await Promise.all(
-      (state.content || []).map(async (p) => {
-        const image = await dalle.invoke(p.prompt!);
-        return {
-          ...p,
-          image,
-        };
-      })
-    );
+      if (!imageWrapper) {
+        this.logger.warn(
+          'No image AI provider configured; skipping picture generation.'
+        );
+        return {};
+      }
 
-    return {
-      content: newContent,
+      const newContent = await Promise.all(
+        (state.content || []).map(async (p) => {
+          const image = await imageWrapper.run(p.prompt!);
+          return {
+            ...p,
+            image,
+          };
+        })
+      );
+
+      return {
+        content: newContent,
+      };
     };
   }
 
@@ -370,19 +386,30 @@ export class AgentGraphService {
     return { date: await this._postsService.findFreeDateTime(state.orgId) };
   }
 
-  start(orgId: string, body: GeneratorDto) {
+  async start(orgId: string, body: GeneratorDto) {
+    const model = await this._resolver.getLangChainChat(orgId);
+    if (!model) {
+      this.logger.warn(
+        'No text AI provider configured for org %s; cannot run agent graph.',
+        orgId
+      );
+      return (async function* () {})();
+    }
+
+    const imageWrapper = await this._resolver.getLangChainImage(orgId);
+
     const state = AgentGraphService.state();
     const workflow = state
-      .addNode('agent', this.startCall.bind(this))
+      .addNode('agent', this.makeStartCall(model))
       .addNode('research', toolNode)
       .addNode('save-research', this.saveResearch.bind(this))
-      .addNode('find-category', this.findCategories.bind(this))
-      .addNode('find-topic', this.findTopic.bind(this))
+      .addNode('find-category', this.makeFindCategories(model))
+      .addNode('find-topic', this.makeFindTopic(model))
       .addNode('find-popular-posts', this.findPopularPosts.bind(this))
-      .addNode('generate-hook', this.generateHook.bind(this))
-      .addNode('generate-content', this.generateContent.bind(this))
+      .addNode('generate-hook', this.makeGenerateHook(model))
+      .addNode('generate-content', this.makeGenerateContent(model))
       .addNode('generate-content-fix', this.fixArray.bind(this))
-      .addNode('generate-picture', this.generatePictures.bind(this))
+      .addNode('generate-picture', this.makeGeneratePictures(imageWrapper))
       .addNode('upload-pictures', this.uploadPictures.bind(this))
       .addNode('post-time', this.postDateTime.bind(this))
       .addEdge(START, 'agent')

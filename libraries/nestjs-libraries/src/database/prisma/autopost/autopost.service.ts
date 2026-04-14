@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.repository';
 import { AutopostDto } from '@gitroom/nestjs-libraries/dtos/autopost/autopost.dto';
 import dayjs from 'dayjs';
@@ -6,7 +6,6 @@ import { END, START, StateGraph } from '@langchain/langgraph';
 import { AutoPost, Integration } from '@prisma/client';
 import { BaseMessage } from '@langchain/core/messages';
 import striptags from 'striptags';
-import { ChatOpenAI, DallEAPIWrapper } from '@langchain/openai';
 import { JSDOM } from 'jsdom';
 import { z } from 'zod';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
@@ -19,6 +18,7 @@ import { TypedSearchAttributes } from '@temporalio/common';
 import {
   organizationId,
 } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
+import { AiProviderResolver } from '@gitroom/nestjs-libraries/ai/ai.provider-resolver';
 const parser = new Parser();
 
 interface WorkflowChannelsState {
@@ -35,17 +35,6 @@ interface WorkflowChannelsState {
   };
 }
 
-const model = new ChatOpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-  model: 'gpt-4.1',
-  temperature: 0.7,
-});
-
-const dalle = new DallEAPIWrapper({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-  model: 'gpt-image-1',
-});
-
 const generateContent = z.object({
   socialMediaPostContent: z
     .string()
@@ -60,11 +49,14 @@ const dallePrompt = z.object({
 
 @Injectable()
 export class AutopostService {
+  private readonly logger = new Logger(AutopostService.name);
+
   constructor(
     private _autopostsRepository: AutopostRepository,
     private _temporalService: TemporalService,
     private _integrationService: IntegrationService,
-    private _postsService: PostsService
+    private _postsService: PostsService,
+    private _resolver: AiProviderResolver
   ) {}
 
   async stopAll(org: string) {
@@ -215,17 +207,25 @@ export class AutopostService {
       };
     }
 
-    const structuredOutput = model.withStructuredOutput(generateContent);
+    const llm = await this._resolver.getLangChainChat(
+      state.integrations[0]?.organizationId ?? state.body.organizationId
+    );
+    if (!llm) {
+      this.logger.warn('No text AI provider configured for autopost; skipping content generation.');
+      return { ...state, description: '' };
+    }
+
+    const structuredOutput = llm.withStructuredOutput(generateContent);
     const { socialMediaPostContent } = await ChatPromptTemplate.fromTemplate(
       `
         You are an assistant that gets raw 'description' of a content and generate a social media post content.
         Rules:
         - Maximum 100 chars
         - Try to make it a short as possible to fit any social media
-        - Add line breaks between sentences (\\n) 
+        - Add line breaks between sentences (\\n)
         - Don't add hashtags
         - Add emojis when needed
-        
+
         'description':
         {content}
       `
@@ -242,12 +242,21 @@ export class AutopostService {
   }
 
   async generatePicture(state: WorkflowChannelsState) {
-    const structuredOutput = model.withStructuredOutput(dallePrompt);
+    const orgId =
+      state.integrations[0]?.organizationId ?? state.body.organizationId;
+
+    const llm = await this._resolver.getLangChainChat(orgId);
+    if (!llm) {
+      this.logger.warn('No text AI provider configured; skipping picture prompt generation.');
+      return { ...state };
+    }
+
+    const structuredOutput = llm.withStructuredOutput(dallePrompt);
     const { generatedTextToBeSentToDallE } =
       await ChatPromptTemplate.fromTemplate(
         `
         You are an assistant that gets description and generate a prompt that will be sent to DallE to generate pictures.
-        
+
         content:
         {content}
       `
@@ -257,7 +266,13 @@ export class AutopostService {
           content: state.load.description || state.description,
         });
 
-    const image = await dalle.invoke(generatedTextToBeSentToDallE);
+    const imageWrapper = await this._resolver.getLangChainImage(orgId);
+    if (!imageWrapper) {
+      this.logger.warn('No image AI provider configured; skipping picture generation.');
+      return { ...state };
+    }
+
+    const image = await imageWrapper.run(generatedTextToBeSentToDallE);
 
     return { ...state, image };
   }

@@ -1,18 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { END, START, StateGraph } from '@langchain/langgraph';
-import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { agentCategories } from '@gitroom/nestjs-libraries/agent/agent.categories';
 import { z } from 'zod';
 import { agentTopics } from '@gitroom/nestjs-libraries/agent/agent.topics';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
-
-const model = new ChatOpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-  model: 'gpt-4o-2024-08-06',
-  temperature: 0,
-});
+import { AiProviderResolver } from '@gitroom/nestjs-libraries/ai/ai.provider-resolver';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { createLangChainChat } from '@gitroom/nestjs-libraries/ai/langchain/langchain-chat.factory';
 
 interface WorkflowChannelsState {
   messages: BaseMessage[];
@@ -36,7 +32,12 @@ const hook = z.object({
 
 @Injectable()
 export class AgentGraphInsertService {
-  constructor(private _postsService: PostsService) {}
+  private readonly logger = new Logger(AgentGraphInsertService.name);
+
+  constructor(
+    private _postsService: PostsService,
+    private _resolver: AiProviderResolver
+  ) {}
   static state = () =>
     new StateGraph<WorkflowChannelsState>({
       channels: {
@@ -52,55 +53,61 @@ export class AgentGraphInsertService {
       },
     });
 
-  async findCategory(state: WorkflowChannelsState) {
-    const { messages } = state;
-    const structuredOutput = model.withStructuredOutput(category);
-    return ChatPromptTemplate.fromTemplate(
-      `
+  private makeFindCategory(model: BaseChatModel) {
+    return async (state: WorkflowChannelsState) => {
+      const { messages } = state;
+      const structuredOutput = model.withStructuredOutput(category);
+      return ChatPromptTemplate.fromTemplate(
+        `
 You are an assistant that get a social media post and categorize it into to one from the following categories:
 {categories}
 Here is the post:
 {post}
     `
-    )
-      .pipe(structuredOutput)
-      .invoke({
-        post: messages[0].content,
-        categories: agentCategories.join(', '),
-      });
+      )
+        .pipe(structuredOutput)
+        .invoke({
+          post: messages[0].content,
+          categories: agentCategories.join(', '),
+        });
+    };
   }
 
-  findTopic(state: WorkflowChannelsState) {
-    const { messages } = state;
-    const structuredOutput = model.withStructuredOutput(topic);
-    return ChatPromptTemplate.fromTemplate(
-      `
+  private makeFindTopic(model: BaseChatModel) {
+    return (state: WorkflowChannelsState) => {
+      const { messages } = state;
+      const structuredOutput = model.withStructuredOutput(topic);
+      return ChatPromptTemplate.fromTemplate(
+        `
 You are an assistant that get a social media post and categorize it into one of the following topics:
 {topics}
 Here is the post:
 {post}
     `
-    )
-      .pipe(structuredOutput)
-      .invoke({
-        post: messages[0].content,
-        topics: agentTopics.join(', '),
-      });
+      )
+        .pipe(structuredOutput)
+        .invoke({
+          post: messages[0].content,
+          topics: agentTopics.join(', '),
+        });
+    };
   }
 
-  findHook(state: WorkflowChannelsState) {
-    const { messages } = state;
-    const structuredOutput = model.withStructuredOutput(hook);
-    return ChatPromptTemplate.fromTemplate(
-      `
+  private makeFindHook(model: BaseChatModel) {
+    return (state: WorkflowChannelsState) => {
+      const { messages } = state;
+      const structuredOutput = model.withStructuredOutput(hook);
+      return ChatPromptTemplate.fromTemplate(
+        `
 You are an assistant that get a social media post and extract the hook, the hook is usually the first or second of both sentence of the post, but can be in a different place, make sure you don't change the wording of the post use the exact text:
 {post}
     `
-    )
-      .pipe(structuredOutput)
-      .invoke({
-        post: messages[0].content,
-      });
+      )
+        .pipe(structuredOutput)
+        .invoke({
+          post: messages[0].content,
+        });
+    };
   }
 
   async savePost(state: WorkflowChannelsState) {
@@ -114,12 +121,39 @@ You are an assistant that get a social media post and extract the hook, the hook
     return {};
   }
 
-  newPost(post: string) {
+  /**
+   * Resolve a chat model for this call.
+   * When orgId is provided the user-configured provider is used.
+   * Otherwise falls back to the OPENAI_API_KEY env variable with gpt-4o.
+   */
+  private async resolveModel(orgId?: string): Promise<BaseChatModel | null> {
+    if (orgId) {
+      return this._resolver.getLangChainChat(orgId);
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      this.logger.warn(
+        'No orgId provided and OPENAI_API_KEY is not set; cannot create model.'
+      );
+      return null;
+    }
+
+    return createLangChainChat('openai', apiKey, 'gpt-4o-2024-08-06');
+  }
+
+  async newPost(post: string, orgId?: string) {
+    const model = await this.resolveModel(orgId);
+    if (!model) {
+      this.logger.warn('No AI model available for agent graph insert; skipping.');
+      return;
+    }
+
     const state = AgentGraphInsertService.state();
     const workflow = state
-      .addNode('find-category', this.findCategory)
-      .addNode('find-topic', this.findTopic)
-      .addNode('find-hook', this.findHook)
+      .addNode('find-category', this.makeFindCategory(model))
+      .addNode('find-topic', this.makeFindTopic(model))
+      .addNode('find-hook', this.makeFindHook(model))
       .addNode('save-post', this.savePost.bind(this))
       .addEdge(START, 'find-category')
       .addEdge('find-category', 'find-topic')

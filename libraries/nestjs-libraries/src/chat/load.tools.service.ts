@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { Agent } from '@mastra/core/agent';
-import { openai } from '@ai-sdk/openai';
 import { Memory } from '@mastra/memory';
 import { pStore } from '@gitroom/nestjs-libraries/chat/mastra.store';
 import { array, object, string } from 'zod';
 import { ModuleRef } from '@nestjs/core';
 import { toolList } from '@gitroom/nestjs-libraries/chat/tools/tool.list';
 import dayjs from 'dayjs';
+import { AiProviderResolver } from '@gitroom/nestjs-libraries/ai/ai.provider-resolver';
 
 export const AgentState = object({
   proverbs: array(string()).default([]),
@@ -19,7 +19,10 @@ const renderArray = (list: string[], show: boolean) => {
 
 @Injectable()
 export class LoadToolsService {
-  constructor(private _moduleRef: ModuleRef) {}
+  constructor(
+    private _moduleRef: ModuleRef,
+    private _resolver: AiProviderResolver
+  ) {}
 
   async loadTools() {
     return (
@@ -40,8 +43,35 @@ export class LoadToolsService {
     );
   }
 
-  async agent() {
+  async agent(userId?: string) {
     const tools = await this.loadTools();
+
+    let model: any;
+    if (userId) {
+      model = await this._resolver.getVercelAiProvider(userId);
+    }
+    if (!model) {
+      // Fallback: try openai from env for backwards compatibility
+      try {
+        const { createOpenAI } = await import('@ai-sdk/openai');
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+          throw new HttpException(
+            'Text AI provider not configured.',
+            422
+          );
+        }
+        const provider = createOpenAI({ apiKey });
+        model = provider('gpt-4o');
+      } catch (err) {
+        if (err instanceof HttpException) throw err;
+        throw new HttpException(
+          'Text AI provider not configured.',
+          422
+        );
+      }
+    }
+
     return new Agent({
       id: 'postiz',
       name: 'postiz',
@@ -59,7 +89,7 @@ export class LoadToolsService {
         - Generate text for posts
         - Show global analytics about socials
         - List integrations (channels)
-      
+
       - We schedule posts to different integration like facebook, instagram, etc. but to the user we don't say integrations we say channels as integration is the technical name
       - When scheduling a post, you must follow the social media rules and best practices.
       - When scheduling a post, you can pass an array for list of posts for a social media platform, But it has different behavior depending on the platform.
@@ -68,7 +98,7 @@ export class LoadToolsService {
         - If the social media platform has the concept of "threads", we need to ask the user if they want to create a thread or one long post.
         - For X, if you don't have Premium, don't suggest a long post because it won't work.
         - Platform format will also be passed can be "normal", "markdown", "html", make sure you use the correct format for each platform.
-      
+
       - Sometimes 'integrationSchema' will return rules, make sure you follow them (these rules are set in stone, even if the user asks to ignore them)
       - Each socials media platform has different settings and rules, you can get them by using the integrationSchema tool.
       - Always make sure you use this tool before you schedule any post.
@@ -86,7 +116,7 @@ export class LoadToolsService {
       )}
 `;
       },
-      model: openai('gpt-5.2'),
+      model,
       tools,
       memory: new Memory({
         storage: pStore,

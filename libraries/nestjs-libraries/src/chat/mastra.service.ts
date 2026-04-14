@@ -8,13 +8,13 @@ import { LoadToolsService } from '@gitroom/nestjs-libraries/chat/load.tools.serv
 export class MastraService {
   static mastra: Mastra;
   constructor(private _loadToolsService: LoadToolsService) {}
-  async mastra() {
+  async mastra(userId?: string) {
     MastraService.mastra =
       MastraService.mastra ||
       new Mastra({
         storage: pStore,
         agents: {
-          postiz: await this._loadToolsService.agent(),
+          postiz: await this._loadToolsService.agent(userId),
         },
         logger: new ConsoleLogger({
           level: 'info',
