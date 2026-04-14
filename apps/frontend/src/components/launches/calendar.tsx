@@ -367,25 +367,25 @@ export const WeekView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 relative">
-        <div className="grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+        <div className="grid [grid-template-columns:48px_repeat(7,_minmax(48px,_1fr))] lg:[grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
           <div className="z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"></div>
           {localizedDays.map((day, index) => (
             <div
               key={day.name}
-              className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]"
+              className="p-[4px] lg:p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20] min-w-0"
             >
-              <div className="text-[14px] font-[500] text-newTableText">
+              <div className="text-[11px] lg:text-[14px] font-[500] text-newTableText truncate max-w-full">
                 {day.name}
               </div>
               <div
                 className={clsx(
-                  'text-[14px] font-[600] flex items-center justify-center gap-[6px]',
+                  'text-[11px] lg:text-[14px] font-[600] flex items-center justify-center gap-[4px] lg:gap-[6px] truncate max-w-full',
                   day.day === newDayjs().format('L') &&
                     'text-newTableTextFocused'
                 )}
               >
                 {day.day === newDayjs().format('L') && (
-                  <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
+                  <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full shrink-0" />
                 )}
                 {day.day}
               </div>
@@ -393,7 +393,7 @@ export const WeekView = () => {
           ))}
           {hours.map((hour) => (
             <Fragment key={hour}>
-              <div className="p-2 pe-4 text-center items-center justify-center flex text-[14px] text-newTableText">
+              <div className="p-[4px] lg:p-2 lg:pe-4 text-center items-center justify-center flex text-[11px] lg:text-[14px] text-newTableText">
                 {convertTimeFormatBasedOnLocality(hour)}
               </div>
               {localizedDays.map((day, indexDay) => (
@@ -582,15 +582,13 @@ export const ListView = () => {
 
 export const Calendar = () => {
   const { display } = useCalendar();
-  const isMobile = useIsMobile();
-  const effectiveDisplay = isMobile && display === 'week' ? 'day' : display;
   return (
     <>
-      {effectiveDisplay === 'list' ? (
+      {display === 'list' ? (
         <ListView />
-      ) : effectiveDisplay === 'day' ? (
+      ) : display === 'day' ? (
         <DayView />
-      ) : effectiveDisplay === 'week' ? (
+      ) : display === 'week' ? (
         <WeekView />
       ) : (
         <MonthView />

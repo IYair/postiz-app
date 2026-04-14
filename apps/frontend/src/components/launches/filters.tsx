@@ -3,12 +3,11 @@
 import { useCalendar } from '@gitroom/frontend/components/launches/calendar.context';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
-import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
 
 // Helper function to get start and end dates based on display type
 function getDateRange(
@@ -44,19 +43,6 @@ function getDateRange(
 export const Filters = () => {
   const calendar = useCalendar();
   const t = useT();
-  const isMobile = useIsMobile();
-
-  useEffect(() => {
-    if (isMobile && calendar.display === 'week') {
-      const range = getDateRange('day');
-      calendar.setFilters({
-        startDate: range.startDate,
-        endDate: range.endDate,
-        display: 'day',
-        customer: calendar.customer,
-      });
-    }
-  }, [isMobile, calendar.display, calendar.customer, calendar.setFilters]);
 
   // Set dayjs locale based on current language
   const currentLanguage = i18next.resolvedLanguage || 'en';
@@ -428,7 +414,7 @@ export const Filters = () => {
           </div>
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer flex-1 lg:w-[74px] text-center rounded-[6px] whitespace-nowrap hidden lg:block',
+              'pt-[6px] pb-[5px] cursor-pointer flex-1 lg:w-[74px] text-center rounded-[6px] whitespace-nowrap',
               calendar.display === 'week' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setWeek}
