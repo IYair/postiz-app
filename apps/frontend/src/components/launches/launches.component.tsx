@@ -26,6 +26,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
 import useCookie from 'react-use-cookie';
 import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
 
 export const SVGLine = () => {
   return (
@@ -83,6 +84,7 @@ interface MenuComponentInterface {
   totalNonDisabledChannels: number;
   mutate: (shouldReload?: boolean) => void;
   update: (shouldReload: boolean) => void;
+  onItemClick?: () => void;
 }
 export const OpenClose: FC<{
   isOpen: boolean;
@@ -132,6 +134,7 @@ export const MenuGroupComponent: FC<
     refreshChannel,
     changeItemGroup,
     collapsed,
+    onItemClick,
   } = props;
   const [isOpen, setIsOpen] = useState(
     !!+(localStorage.getItem(group.name + '_isOpen') || '1')
@@ -208,6 +211,7 @@ export const MenuGroupComponent: FC<
             update={update}
             refreshChannel={refreshChannel}
             totalNonDisabledChannels={totalNonDisabledChannels}
+            onItemClick={onItemClick}
           />
         ))}
       </div>
@@ -232,27 +236,38 @@ export const MenuComponent: FC<
     update,
     integration,
     collapsed,
+    onItemClick,
   } = props;
   const user = useUser();
   const t = useT();
+  const isMobile = useIsMobile();
   const [collected, drag, dragPreview] = useDrag(() => ({
     type: 'menu',
     item: {
       id: integration.id,
     },
-  }));
+    canDrag: () => !isMobile,
+  }), [isMobile]);
+  const handleRootClick = (e: React.MouseEvent) => {
+    if (integration.refreshNeeded) {
+      refreshChannel(integration)();
+    }
+    onItemClick?.();
+  };
   return (
     <div
       // @ts-ignore
       ref={dragPreview}
-      {...(integration.refreshNeeded && {
-        onClick: refreshChannel(integration),
-        'data-tooltip-id': 'tooltip',
-        'data-tooltip-content': t(
-          'channel_disconnected_click_to_reconnect',
-          'Channel disconnected, click to reconnect.'
-        ),
-      })}
+      onClick={handleRootClick}
+      {...(integration.refreshNeeded
+        ? {
+            'data-tooltip-id': 'tooltip',
+            'data-tooltip-content': t(
+              'channel_disconnected_click_to_reconnect',
+              'Channel disconnected, click to reconnect.'
+            ),
+          }
+        : {})}
       {...(collapsed
         ? {
             'data-tooltip-id': 'tooltip',
@@ -362,6 +377,8 @@ export const LaunchesComponent = () => {
   const [collapseMenu, setCollapseMenu] = useCookie('collapseMenu', '0');
   const [mode] = useCookie('mode', 'dark');
   const { isLoading, data: integrations, mutate } = useIntegrationList();
+  const isMobile = useIsMobile();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const totalNonDisabledChannels = useMemo(() => {
     return (
@@ -497,10 +514,19 @@ export const LaunchesComponent = () => {
     <DNDProvider>
       <Onboarding />
       <CalendarWeekProvider integrations={sortedIntegrations}>
+        {isMobile && drawerOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-[9998] md:hidden"
+            onClick={() => setDrawerOpen(false)}
+            aria-hidden="true"
+          />
+        )}
         <div
           className={clsx(
-            'flex relative flex-col',
-            collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
+            'flex relative flex-col transition-transform',
+            'max-md:fixed max-md:inset-y-0 max-md:start-0 max-md:z-[9999] max-md:w-[280px] max-md:bg-newBgColorInner',
+            isMobile && !drawerOpen && 'max-md:-translate-x-full rtl:max-md:translate-x-full',
+            collapseMenu === '1' ? 'md:group md:sidebar md:w-[100px]' : 'md:w-[260px]'
           )}
         >
           <div
@@ -577,6 +603,7 @@ export const LaunchesComponent = () => {
                   update={update}
                   refreshChannel={refreshChannel}
                   totalNonDisabledChannels={totalNonDisabledChannels}
+                  onItemClick={() => setDrawerOpen(false)}
                 />
               ))}
             </div>
@@ -592,9 +619,20 @@ export const LaunchesComponent = () => {
             </div>
           </div>
         </div>
-        <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
+        <div className="bg-newBgColorInner flex-1 flex-col flex p-[12px] md:p-[20px] gap-[12px] min-w-0">
+          <div className="flex items-center gap-[8px] md:hidden">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="w-[40px] h-[40px] flex items-center justify-center rounded-[8px] border border-newTableBorder bg-newBgColorInner"
+              aria-label="Open channels"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
           <Filters />
-          <div className="flex-1 flex">
+          <div className="flex-1 flex min-w-0">
             <Calendar />
           </div>
         </div>
