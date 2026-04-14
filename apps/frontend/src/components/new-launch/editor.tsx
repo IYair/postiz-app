@@ -427,32 +427,6 @@ export const EditorWrapper: FC<{
           )}
         >
           <div className="relative flex gap-[5px] flex-1 w-full min-w-0">
-            {/* Mobile floating right-actions cluster (visible only when comments on + more than one item) */}
-            {comments && (
-              <div className="lg:hidden absolute top-[8px] end-[8px] z-10 flex items-center gap-[6px]">
-                <UpDownArrow
-                  isUp={index !== 0}
-                  isDown={index !== items.length - 1}
-                  onChange={changeOrder(index)}
-                />
-                {items.length > 1 && (
-                  <div className="w-[32px] h-[32px] flex items-center justify-center">
-                    <TrashIcon
-                      onClick={deletePost(index)}
-                      data-tooltip-id="tooltip"
-                      data-tooltip-content={t(
-                        'delete_post_tooltip',
-                        'Delete Post'
-                      )}
-                      className="cursor-pointer text-[#FF3F3F]"
-                    />
-                  </div>
-                )}
-                {index > 0 && (
-                  <DelayComponent currentIndex={index} currentDelay={g.delay} />
-                )}
-              </div>
-            )}
             <div className="flex-1 flex w-full min-w-0">
               {index > 0 && (
                 <div className="flex justify-center pl-[12px] text-newSep">
@@ -521,9 +495,9 @@ export const EditorWrapper: FC<{
                 }
               />
             </div>
-            {/* Desktop right-actions column — hidden on mobile (handled by the floating cluster above) */}
+            {/* Right-actions column — compact on mobile, normal on desktop */}
             {comments && (
-              <div className="hidden lg:flex flex-col items-center gap-[10px] pe-[12px]">
+              <div className="flex shrink-0 flex-col items-center gap-[8px] lg:gap-[10px] pe-[6px] lg:pe-[12px] pt-[8px]">
                 <UpDownArrow
                   isUp={index !== 0}
                   isDown={index !== items.length - 1}
