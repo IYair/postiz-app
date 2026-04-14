@@ -107,11 +107,11 @@ export const MissingReleaseModal: FC<{
           </div>
         ))}
       </div>
-      <div className="flex justify-end gap-[10px] pt-[8px] border-t border-tableBorder">
+      <div className="flex flex-col lg:flex-row justify-end gap-[10px] pt-[8px] border-t border-tableBorder">
         <Button
           type="button"
           onClick={() => modal.closeAll()}
-          className="bg-transparent border border-tableBorder text-textColor"
+          className="w-full lg:w-auto bg-transparent border border-tableBorder text-textColor"
         >
           {t('cancel', 'Cancel')}
         </Button>
@@ -120,6 +120,7 @@ export const MissingReleaseModal: FC<{
           onClick={handleSave}
           disabled={!selected || saving}
           loading={saving}
+          className="w-full lg:w-auto"
         >
           {t('connect_post', 'Connect Post')}
         </Button>
