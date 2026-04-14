@@ -128,7 +128,7 @@ export const TimeTable: FC<{
   }, [currentTimes]);
 
   return (
-    <div className="relative w-full max-w-[400px] mx-auto">
+    <div className="relative w-full max-w-full lg:max-w-[400px] mx-auto">
       {/* Add Time Slot Section */}
       <div className="bg-newBgColorInner rounded-[12px] p-[20px] border border-newTableBorder">
         <div className="text-[15px] font-semibold mb-[16px] flex items-center gap-[8px]">
@@ -136,7 +136,7 @@ export const TimeTable: FC<{
           {t('add_time_slot', 'Add Time Slot')}
         </div>
 
-        <div className="flex gap-[12px] items-end">
+        <div className="flex flex-col lg:flex-row gap-[8px] lg:gap-[12px] lg:items-end">
           <div className="flex-1">
             <Select
               label={t('hour', 'Hour')}
@@ -172,7 +172,7 @@ export const TimeTable: FC<{
           <button
             type="button"
             onClick={addHour}
-            className="h-[42px] px-[16px] bg-[#612BD3] hover:bg-[#7640e0] transition-colors rounded-[8px] flex items-center gap-[6px] text-white text-[14px] font-medium"
+            className="h-[44px] px-[16px] bg-[#612BD3] hover:bg-[#7640e0] transition-colors rounded-[8px] flex items-center justify-center gap-[6px] text-white text-[14px] font-medium"
           >
             <PlusIcon size={14} />
             {t('add', 'Add')}

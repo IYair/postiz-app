@@ -63,10 +63,10 @@ export const CustomerModal: FC<{
         />
       </div>
 
-      <div className="my-[16px] flex gap-[10px]">
-        <Button onClick={() => saveCustomer()}>{t('save', 'Save')}</Button>
+      <div className="my-[16px] flex flex-col lg:flex-row gap-[10px]">
+        <Button className="w-full lg:w-auto" onClick={() => saveCustomer()}>{t('save', 'Save')}</Button>
         {!!integration?.customer?.name && (
-          <Button className="bg-red-700" onClick={removeFromCustomer}>
+          <Button className="w-full lg:w-auto bg-red-700" onClick={removeFromCustomer}>
             {t('remove_from_customer', 'Remove from customer')}
           </Button>
         )}
