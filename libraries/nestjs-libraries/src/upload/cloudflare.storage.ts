@@ -70,7 +70,7 @@ class CloudflareStorage implements IUploadProvider {
     );
   }
 
-  async uploadSimple(path: string) {
+  async uploadSimple(path: string | Buffer) {
     const loadImage = await fetch(path);
     const body = Buffer.from(await loadImage.arrayBuffer());
     const detected = await fromBuffer(body);

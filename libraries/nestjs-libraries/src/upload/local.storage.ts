@@ -19,14 +19,27 @@ const LOCAL_STORAGE_ALLOWED_MIME = new Set<string>([
 export class LocalStorage implements IUploadProvider {
   constructor(private uploadDirectory: string) {}
 
-  async uploadSimple(path: string) {
-    const loadImage = await fetch(path);
-    const contentType =
-      loadImage?.headers?.get('content-type') ||
-      loadImage?.headers?.get('Content-Type');
+  async uploadSimple(input: string | Buffer) {
+    let buffer: Buffer;
+    let contentType = 'image/png';
+
+    if (Buffer.isBuffer(input)) {
+      buffer = input;
+    } else if (input.startsWith('http')) {
+      const loadImage = await fetch(input);
+      contentType =
+        loadImage?.headers?.get('content-type') ||
+        loadImage?.headers?.get('Content-Type') ||
+        'image/png';
+      buffer = Buffer.from(await loadImage.arrayBuffer());
+    } else {
+      // base64 fallback
+      buffer = Buffer.from(input, 'base64');
+    }
+
     const findExtension = mime.getExtension(contentType) ||
-      path.split('?')[0].split('#')[0].split('.').pop() ||
-      'bin';
+      (typeof input === 'string' ? input.split('?')[0].split('#')[0].split('.').pop() : null) ||
+      'png';
 
     const now = new Date();
     const year = now.getFullYear();
@@ -45,7 +58,7 @@ export class LocalStorage implements IUploadProvider {
     const filePath = `${dir}/${randomName}.${findExtension}`;
     const publicPath = `${innerPath}/${randomName}.${findExtension}`;
     // Logic to save the file to the filesystem goes here
-    writeFileSync(filePath, Buffer.from(await loadImage.arrayBuffer()));
+    writeFileSync(filePath, buffer);
 
     return process.env.FRONTEND_URL + '/uploads' + publicPath;
   }
