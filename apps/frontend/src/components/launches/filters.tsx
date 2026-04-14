@@ -56,7 +56,7 @@ export const Filters = () => {
         customer: calendar.customer,
       });
     }
-  }, [isMobile, calendar.display]);
+  }, [isMobile, calendar.display, calendar.customer, calendar.setFilters]);
 
   // Set dayjs locale based on current language
   const currentLanguage = i18next.resolvedLanguage || 'en';
