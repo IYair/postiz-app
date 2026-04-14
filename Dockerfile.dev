@@ -14,15 +14,22 @@ RUN addgroup --system www \
  && mkdir -p /www \
  && chown -R www:www /www /var/lib/nginx
 
-
 RUN npm --no-update-notifier --no-fund --global install pnpm@10.6.1 pm2
 
 WORKDIR /app
 
+# Copy dependency files first (cached layer — only re-runs when deps change)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/backend/package.json apps/backend/
+COPY apps/frontend/package.json apps/frontend/
+COPY apps/orchestrator/package.json apps/orchestrator/
+
+RUN pnpm install --frozen-lockfile
+
+# Copy source code and config (this layer changes on every code push)
 COPY . /app
 COPY var/docker/nginx.conf /etc/nginx/nginx.conf
 
-RUN pnpm install
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
 CMD ["sh", "-c", "nginx && pnpm run pm2"]
