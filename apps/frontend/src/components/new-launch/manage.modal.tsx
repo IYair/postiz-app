@@ -9,6 +9,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
 import { AddEditModalProps } from '@gitroom/frontend/components/new-launch/add.edit.modal';
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -62,6 +63,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const modal = useModals();
   const [showSettings, setShowSettings] = useState(false);
   const { data: shortlinkPreferenceData } = useShortlinkPreference();
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
 
   const { addEditSets, mutate, customClose, dummy } = props;
 
@@ -443,11 +446,37 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   );
 
   return (
-    <div className="w-full h-full flex-1 p-[40px] flex relative">
-      <div className="flex flex-1 bg-newBgColorInner rounded-[20px] flex-col">
-        <div className="flex-1 flex">
-          <div className="flex flex-col flex-1 border-e border-newBorder">
-            <div className="bg-newBgColor h-[65px] rounded-s-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
+    <div className="w-full h-full flex-1 lg:p-[40px] flex relative">
+      <div className="flex flex-1 bg-newBgColorInner lg:rounded-[20px] flex-col">
+        {isMobile && (
+          <div className="sticky top-0 z-20 flex bg-newBgColorInner border-b border-newTableBorder">
+            <button
+              onClick={() => setMobileTab('edit')}
+              className={clsx(
+                'flex-1 h-[44px] text-[14px] font-[500]',
+                mobileTab === 'edit'
+                  ? 'text-textItemFocused border-b-2 border-primary'
+                  : 'text-textColor'
+              )}
+            >
+              {t('edit', 'Editar')}
+            </button>
+            <button
+              onClick={() => setMobileTab('preview')}
+              className={clsx(
+                'flex-1 h-[44px] text-[14px] font-[500]',
+                mobileTab === 'preview'
+                  ? 'text-textItemFocused border-b-2 border-primary'
+                  : 'text-textColor'
+              )}
+            >
+              {t('preview', 'Vista previa')}
+            </button>
+          </div>
+        )}
+        <div className="flex-1 flex flex-col lg:flex-row">
+          <div className={clsx('flex flex-col flex-1 lg:border-e border-newBorder', isMobile && mobileTab !== 'edit' && 'hidden')}>
+            <div className="bg-newBgColor h-[65px] lg:rounded-s-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
               {t('create_post_title', 'Create Post')}
             </div>
             <div className="flex-1 flex flex-col gap-[16px]">
@@ -532,8 +561,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               </div>
             </div>
           </div>
-          <div className="w-[580px] flex flex-col">
-            <div className="bg-newBgColor h-[65px] rounded-e-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
+          <div className={clsx('w-full lg:w-[580px] flex flex-col', isMobile && mobileTab !== 'preview' && 'hidden')}>
+            <div className="bg-newBgColor h-[65px] lg:rounded-e-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
               <div className="flex-1">{t('post_preview', 'Post Preview')}</div>
               <div className="cursor-pointer">
                 <CloseIcon onClick={askClose} className="text-[#A3A3A3]" />
@@ -549,8 +578,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           </div>
         </div>
-        <div className="select-none h-[84px] py-[20px] border-t border-newBorder flex items-center">
-          <div className="flex-1 flex ps-[20px] gap-[8px]">
+        <div className="select-none py-[12px] lg:h-[84px] lg:py-[20px] border-t border-newBorder flex flex-wrap items-center gap-[8px] lg:flex-nowrap lg:gap-0">
+          <div className="flex-1 flex ps-[20px] gap-[8px] flex-wrap">
             {!dummy && (
               <TagsComponent
                 name="tags"
@@ -566,11 +595,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               <RepeatComponent repeat={repeater} onChange={setRepeater} />
             )}
           </div>
-          <div className="pe-[20px] flex items-center justify-end gap-[8px]">
+          <div className="pe-[20px] ps-[20px] lg:ps-0 flex flex-wrap items-center justify-end gap-[8px]">
             {existingData?.integration && (
               <button
                 onClick={deletePost}
-                className="cursor-pointer flex text-[#FF3F3F] gap-[8px] items-center text-[15px] font-[600]"
+                className="cursor-pointer flex shrink-0 text-[#FF3F3F] gap-[8px] items-center text-[15px] font-[600]"
               >
                 <div>
                   <TrashIcon />
