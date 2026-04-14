@@ -693,14 +693,14 @@ export const CalendarColumn: FC<{
             modal.openModal({
               title: t('what_do_you_want_to_do', 'What do you want to do?'),
               children: (
-                <div className="flex flex-col">
+                <div className="flex flex-col w-screen h-[100dvh] max-w-none md:w-full md:h-auto md:max-w-[500px]">
                   <div className="text-[20px] mb-[20px]">
                     {t(
                       'post_already_published_drag',
                       'This post was already published, what do you want to do?'
                     )}
                   </div>
-                  <div className="flex w-full gap-[10px]">
+                  <div className="flex flex-col md:flex-row w-full gap-[10px]">
                     <div className="flex-1 flex">
                       <Button
                         type="button"
@@ -1368,7 +1368,7 @@ export const SetSelectionModal: FC<{
   const t = useT();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 w-screen h-[100dvh] max-w-none md:w-full md:h-auto md:max-w-[500px]">
       <div className="text-lg font-medium">
         {t('choose_set_or_continue', 'Choose a set or continue without one')}
       </div>
