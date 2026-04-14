@@ -794,7 +794,7 @@ html[dir='rtl'] [dir='ltr'] {
     1px 1px 0 black;
 }
 
-@keyframes slideUp {
+@keyframes bottomSheetSlideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
