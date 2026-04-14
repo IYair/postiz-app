@@ -80,7 +80,11 @@ services:
       # NEXT_PUBLIC_SENTRY_DSN: 'http://spotlight:8969/stream'
       # SENTRY_SPOTLIGHT: '1'
 
-      # === Misc Settings
+      # === AI Provider Settings
+      # ENCRYPTION_KEY is required for storing user AI API keys securely.
+      # Generate with: openssl rand -hex 32
+      ENCRYPTION_KEY: ''
+      # OPENAI_API_KEY is kept for backward compatibility (optional fallback)
       OPENAI_API_KEY: ''
       NEXT_PUBLIC_DISCORD_SUPPORT: ''
       NEXT_PUBLIC_POLOTNO: ''
