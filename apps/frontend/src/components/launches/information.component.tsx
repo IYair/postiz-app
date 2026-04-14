@@ -1,12 +1,14 @@
 'use client';
 
-import React, { FC, Fragment, useMemo } from 'react';
+import React, { FC, Fragment, useCallback, useMemo, useState } from 'react';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
 import clsx from 'clsx';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { capitalize } from 'lodash';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
+import { BottomSheet } from '@gitroom/frontend/components/ui/bottom.sheet';
 
 const Valid: FC = () => {
   return (
@@ -54,6 +56,7 @@ const Invalid: FC = () => {
     </svg>
   );
 };
+
 export const InformationComponent: FC<{
   chars: Record<string, number>;
   totalChars: number;
@@ -61,6 +64,9 @@ export const InformationComponent: FC<{
   isPicture: boolean;
 }> = ({ totalChars, totalAllowedChars, chars, isPicture }) => {
   const t = useT();
+  const isMobile = useIsMobile();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   const { isGlobal, selectedIntegrations, internal } = useLaunchStore(
     useShallow((state) => ({
       isGlobal: state.current === 'global',
@@ -115,7 +121,6 @@ export const InformationComponent: FC<{
       return null;
     }
 
-    // Get all limits from non-internal integrations, sorted ascending
     const limits = selectedIntegrations
       .map((p, index) => ({
         limit: chars?.[p.integration.id] || 0,
@@ -129,32 +134,113 @@ export const InformationComponent: FC<{
       return null;
     }
 
-    // Find the smallest limit that hasn't been exceeded yet
-    // If all are exceeded, show the smallest one
     const validLimit = limits.find((limit) => totalChars <= limit);
     return validLimit ?? limits[0];
   }, [isGlobal, selectedIntegrations, chars, isInternal, totalChars]);
+
+  const hasDetail =
+    (isGlobal && selectedIntegrations.length > 0) || !isValid;
+
+  const detailContent = (
+    <>
+      {!isPicture && !totalChars && (
+        <div
+          className={clsx(
+            'text-sm text-[#FF3F3F] whitespace-nowrap',
+            isGlobal && selectedIntegrations.length && 'mb-[12px]'
+          )}
+        >
+          {t(
+            'your_post_should_have_at_least_one_character_or_one_image',
+            'Your post should have at least one character or one image.'
+          )}
+        </div>
+      )}
+      {isGlobal && (
+        <div className="grid grid-cols-1 lg:grid-cols-[auto_auto_auto] text-[14px] font-[500] gap-[8px] items-center">
+          {selectedIntegrations.map((p, index) => (
+            <Fragment key={p.integration.id}>
+              <div className="flex items-center gap-[8px] lg:contents">
+                <SafeImage
+                  src={`/icons/platforms/${p.integration.identifier}.png`}
+                  alt={p.integration.name}
+                  className="rounded-[4px] w-[16px] h-[16px] min-w-[16px] min-h-[16px]"
+                  width={16}
+                  height={16}
+                />
+                <div
+                  className={clsx(
+                    'whitespace-nowrap',
+                    isInternal?.[index]
+                      ? ''
+                      : totalChars > (chars?.[p.integration.id] || 0)
+                      ? 'text-[#FF3F3F]'
+                      : ''
+                  )}
+                >
+                  {p.integration.name} (
+                  {capitalize(p.integration.identifier.split('-')[0])}):
+                </div>
+                <div
+                  className={clsx(
+                    'whitespace-nowrap',
+                    isInternal?.[index]
+                      ? ''
+                      : totalChars > (chars?.[p.integration.id] || 0)
+                      ? 'text-[#FF3F3F]'
+                      : ''
+                  )}
+                >
+                  {isInternal?.[index]
+                    ? t('internal_edit', 'Internal Edit')
+                    : `${totalChars}/${chars?.[p.integration.id] || 0}`}
+                </div>
+              </div>
+            </Fragment>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  const handleClick = useCallback(() => {
+    if (isMobile && hasDetail) {
+      setSheetOpen(true);
+    }
+  }, [isMobile, hasDetail]);
 
   return (
     <div
       className={clsx(
         'group rounded-[6px] gap-[4px] h-[30px] px-[6px] flex justify-center items-center relative',
-        isValid ? 'border border-newColColor' : 'bg-[#FF3F3F]'
+        isValid ? 'border border-newColColor' : 'bg-[#FF3F3F]',
+        isMobile && hasDetail && 'cursor-pointer'
       )}
+      onClick={handleClick}
     >
       {isValid ? <Valid /> : <Invalid />}
 
       {!isGlobal && (
-        <div className={clsx("text-[10px] font-[600] flex justify-center items-center", !isValid && 'text-white')}>
+        <div
+          className={clsx(
+            'text-[10px] font-[600] flex justify-center items-center',
+            !isValid && 'text-white'
+          )}
+        >
           {totalChars}/{totalAllowedChars}
         </div>
       )}
       {isGlobal && globalDisplayLimit !== null && (
-        <div className={clsx("text-[10px] font-[600] flex justify-center items-center", !isValid && 'text-white')}>
+        <div
+          className={clsx(
+            'text-[10px] font-[600] flex justify-center items-center',
+            !isValid && 'text-white'
+          )}
+        >
           {totalChars}/{globalDisplayLimit}
         </div>
       )}
-      {((isGlobal && selectedIntegrations.length) || !isValid) && (
+      {hasDetail && (
         <svg
           className={clsx('group-hover:rotate-180', !isValid && 'text-white')}
           xmlns="http://www.w3.org/2000/svg"
@@ -169,68 +255,26 @@ export const InformationComponent: FC<{
           />
         </svg>
       )}
-      {((isGlobal && selectedIntegrations.length) || !isValid) && (
+      {/* Desktop hover tooltip */}
+      {hasDetail && !isMobile && (
         <div
           className={clsx(
             'z-[300] hidden rounded-[12px] bg-newBgColorInner group-hover:flex absolute end-0 bottom-[100%] mb-[5px] p-[12px] flex-col',
             isValid ? 'border border-newColColor' : 'border border-[#FF3F3F]'
           )}
         >
-          {!isPicture && !totalChars && (
-            <div
-              className={clsx(
-                'text-sm text-[#FF3F3F] whitespace-nowrap',
-                isGlobal && selectedIntegrations.length && 'mb-[12px]'
-              )}
-            >
-              {t('your_post_should_have_at_least_one_character_or_one_image', 'Your post should have at least one character or one image.')}
-            </div>
-          )}
-          {isGlobal && (
-            <div className="grid grid-cols-[auto_auto_auto] text-[14px] font-[500] gap-[8px] items-center">
-              {selectedIntegrations.map((p, index) => (
-                <Fragment key={p.integration.id}>
-                  <div>
-                    <SafeImage
-                      src={`/icons/platforms/${p.integration.identifier}.png`}
-                      alt={p.integration.name}
-                      className="rounded-[4px] w-[16px] h-[16px] min-w-[16px] min-h-[16px]"
-                      width={16}
-                      height={16}
-                    />
-                  </div>
-                  <div
-                    className={clsx(
-                      'whitespace-nowrap',
-                      isInternal?.[index]
-                        ? ''
-                        : totalChars > (chars?.[p.integration.id] || 0)
-                        ? 'text-[#FF3F3F]'
-                        : ''
-                    )}
-                  >
-                    {p.integration.name} (
-                    {capitalize(p.integration.identifier.split('-')[0])}):
-                  </div>
-                  <div
-                    className={clsx(
-                      'whitespace-nowrap',
-                      isInternal?.[index]
-                        ? ''
-                        : totalChars > (chars?.[p.integration.id] || 0)
-                        ? 'text-[#FF3F3F]'
-                        : ''
-                    )}
-                  >
-                    {isInternal?.[index]
-                      ? t('internal_edit', 'Internal Edit')
-                      : `${totalChars}/${chars?.[p.integration.id] || 0}`}
-                  </div>
-                </Fragment>
-              ))}
-            </div>
-          )}
+          {detailContent}
         </div>
+      )}
+      {/* Mobile bottom sheet */}
+      {isMobile && (
+        <BottomSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          label={t('character_limits', 'Character Limits')}
+        >
+          <div className="p-[16px] flex flex-col gap-[8px]">{detailContent}</div>
+        </BottomSheet>
       )}
     </div>
   );

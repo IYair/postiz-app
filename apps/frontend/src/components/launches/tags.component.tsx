@@ -18,6 +18,8 @@ import {
   PlusIcon,
   CheckmarkIcon,
 } from '@gitroom/frontend/components/ui/icons';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
+import { BottomSheet } from '@gitroom/frontend/components/ui/bottom.sheet';
 
 export const TagsComponent: FC<{
   name: string;
@@ -70,9 +72,10 @@ export const TagsComponentInner: FC<{
     })
   );
   const modals = useModals();
+  const isMobile = useIsMobile();
 
   const ref = useClickOutside(() => {
-    if (!isOpen || !allowClose) {
+    if (!isOpen || !allowClose || isMobile) {
       return;
     }
     setIsOpen(false);
@@ -159,9 +162,73 @@ export const TagsComponentInner: FC<{
     [tagValue, name, onChange, mutate, fetch, modals, t]
   );
 
+  const tagList = (
+    <>
+      <div className="max-h-[300px] overflow-y-auto flex flex-col">
+        {(data?.tags || []).map((p: any) => (
+          <div
+            onClick={() => {
+              const exists = !!tagValue.find((a) => a.id === p.id);
+              let modify = [];
+              if (exists) {
+                modify = tagValue.filter((a) => a.id !== p.id);
+              } else {
+                modify = [...tagValue, p];
+              }
+              setTagValue(modify);
+              onChange({
+                target: {
+                  value: modify.map((p: any) => ({
+                    label: p.name,
+                    value: p.name,
+                  })),
+                  name,
+                },
+              });
+            }}
+            key={p.name}
+            className="min-h-[48px] lg:min-h-[40px] py-[8px] px-[12px] flex gap-[8px] items-center cursor-pointer hover:bg-newBgColor"
+          >
+            <Check
+              onChange={() => {}}
+              value={!!tagValue.find((a) => a.id === p.id)}
+            />
+            <div className="h-full flex items-center flex-1 break-all">
+              <span
+                className="text-[#fff] px-[8px] rounded-[8px] text-shadow-tags"
+                style={{ backgroundColor: p.color }}
+              >
+                {p.name}
+              </span>
+            </div>
+            {!tagValue.find((a) => a.id === p.id) && (
+              <div
+                onClick={(e) => deleteTag(p, e)}
+                className="ms-auto transition-opacity cursor-pointer text-red-500 text-[14px] font-[600]"
+              >
+                ×
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div
+        onClick={addTag}
+        className="cursor-pointer gap-[8px] flex w-full h-[48px] lg:h-[34px] rounded-[8px] mt-[12px] px-[16px] justify-center items-center bg-[#612BD3] text-white"
+      >
+        <div>
+          <PlusIcon />
+        </div>
+        <div className="text-[13px] font-[600]">
+          {t('add_new_tag', 'Add New Tag')}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div
-      ref={ref}
+      ref={isMobile ? undefined : ref}
       className={clsx(
         'border rounded-[8px] justify-center flex items-center relative h-[44px] text-[15px] font-[600] select-none',
         isOpen ? 'border-[#612BD3]' : 'border-newTextColor/10'
@@ -207,66 +274,23 @@ export const TagsComponentInner: FC<{
           </span>
         )}
       </div>
-      {isOpen && (
-        <div className="z-[300] absolute start-0 bottom-[100%] w-[240px] bg-newBgColorInner p-[12px] menu-shadow -translate-y-[10px] flex flex-col">
-          {(data?.tags || []).map((p: any) => (
-            <div
-              onClick={() => {
-                const exists = !!tagValue.find((a) => a.id === p.id);
-                let modify = [];
-                if (exists) {
-                  modify = tagValue.filter((a) => a.id !== p.id);
-                } else {
-                  modify = [...tagValue, p];
-                }
-                setTagValue(modify);
-                onChange({
-                  target: {
-                    value: modify.map((p: any) => ({
-                      label: p.name,
-                      value: p.name,
-                    })),
-                    name,
-                  },
-                });
-              }}
-              key={p.name}
-              className="min-h-[40px] py-[8px] px-[20px] -mx-[12px] flex gap-[8px] items-center group"
-            >
-              <Check
-                onChange={() => {}}
-                value={!!tagValue.find((a) => a.id === p.id)}
-              />
-              <div className="h-full flex items-center flex-1 break-all">
-                <span
-                  className="text-[#fff] px-[8px] rounded-[8px] text-shadow-tags"
-                  style={{ backgroundColor: p.color }}
-                >
-                  {p.name}
-                </span>
-              </div>
-              {!tagValue.find((a) => a.id === p.id) && (
-                <div
-                  onClick={(e) => deleteTag(p, e)}
-                  className="ms-auto transition-opacity cursor-pointer text-red-500 text-[14px] font-[600]"
-                >
-                  ×
-                </div>
-              )}
-            </div>
-          ))}
+      {isMobile ? (
+        <BottomSheet
+          open={isOpen}
+          onClose={() => setIsOpen(false)}
+          label={t('add_new_tag', 'Add New Tag')}
+        >
+          <div className="px-[16px] pb-[16px]">{tagList}</div>
+        </BottomSheet>
+      ) : (
+        isOpen && (
           <div
-            onClick={addTag}
-            className="cursor-pointer gap-[8px] flex w-full h-[34px] rounded-[8px] mt-[12px] px-[16px] justify-center items-center bg-[#612BD3] text-white"
+            ref={ref}
+            className="z-[300] absolute start-0 bottom-[100%] w-[240px] bg-newBgColorInner p-[12px] menu-shadow -translate-y-[10px] flex flex-col"
           >
-            <div>
-              <PlusIcon />
-            </div>
-            <div className="text-[13px] font-[600]">
-              {t('add_new_tag', 'Add New Tag')}
-            </div>
+            {tagList}
           </div>
-        </div>
+        )
       )}
     </div>
   );
@@ -407,13 +431,6 @@ export const TagsComponentA: FC<{
     },
     [tagValue, data]
   );
-
-  // useEffect(() => {
-  //   const settings = getValues()[props.name];
-  //   if (settings) {
-  //     setTagValue(settings);
-  //   }
-  // }, []);
 
   const suggestionsArray = useMemo(() => {
     return uniqBy<{
