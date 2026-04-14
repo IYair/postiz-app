@@ -128,7 +128,7 @@ You are an assistant that get a social media post and extract the hook, the hook
    */
   private async resolveModel(orgId?: string): Promise<BaseChatModel | null> {
     if (orgId) {
-      return this._resolver.getLangChainChat(orgId);
+      return this._resolver.getLangChainChatByOrgId(orgId);
     }
 
     const apiKey = process.env.OPENAI_API_KEY;

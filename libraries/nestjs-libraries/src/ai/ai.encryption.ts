@@ -12,7 +12,13 @@ function getEncryptionKey(): Buffer {
       'ENCRYPTION_KEY environment variable is required for AI provider key storage'
     );
   }
-  return Buffer.from(key, 'hex');
+  const buf = Buffer.from(key, 'hex');
+  if (buf.length !== 32) {
+    throw new Error(
+      'ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)'
+    );
+  }
+  return buf;
 }
 
 export function encryptApiKey(plaintext: string): string {

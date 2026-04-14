@@ -11,6 +11,28 @@ export class AiConfigRepository {
     });
   }
 
+  async findByOrgId(orgId: string) {
+    const userOrg = await this._aiConfig.model.userOrganization.findFirst({
+      where: { organizationId: orgId },
+      include: { user: { include: { aiConfig: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!userOrg?.user?.aiConfig) {
+      // Try any user in the org that has an AI config
+      const anyUserOrg = await this._aiConfig.model.userOrganization.findFirst({
+        where: {
+          organizationId: orgId,
+          user: { aiConfig: { isNot: null } },
+        },
+        include: { user: { include: { aiConfig: true } } },
+      });
+      return anyUserOrg?.user?.aiConfig ?? null;
+    }
+
+    return userOrg.user.aiConfig;
+  }
+
   async upsert(
     userId: string,
     data: {

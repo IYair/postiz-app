@@ -70,9 +70,18 @@ class CloudflareStorage implements IUploadProvider {
     );
   }
 
-  async uploadSimple(path: string | Buffer) {
-    const loadImage = await fetch(path);
-    const body = Buffer.from(await loadImage.arrayBuffer());
+  async uploadSimple(input: string | Buffer) {
+    let body: Buffer;
+
+    if (Buffer.isBuffer(input)) {
+      body = input;
+    } else if (input.startsWith('http')) {
+      const response = await fetch(input);
+      body = Buffer.from(await response.arrayBuffer());
+    } else {
+      body = Buffer.from(input, 'base64');
+    }
+
     const detected = await fromBuffer(body);
     if (!detected || !ALLOWED_MIME_TYPES.has(detected.mime)) {
       throw new Error('Unsupported file type.');

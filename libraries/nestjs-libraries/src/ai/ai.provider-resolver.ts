@@ -26,6 +26,7 @@ export class AiProviderResolver {
   private langChainChatCache = new LRUCache<string, BaseChatModel>(
     CACHE_OPTIONS
   );
+  private vercelAiCache = new LRUCache<string, any>(CACHE_OPTIONS);
 
   constructor(private configService: AiConfigService) {}
 
@@ -85,12 +86,24 @@ export class AiProviderResolver {
   }
 
   async getVercelAiProvider(userId: string): Promise<any | null> {
+    const cached = this.vercelAiCache.get(userId);
+    if (cached) return cached;
+
     const data = await this.configService.getDecryptedKeys(userId);
     if (!data) return null;
+    const result = this.buildVercelAiProvider(data);
+    if (result) this.vercelAiCache.set(userId, result);
+    return result;
+  }
+
+  private async buildVercelAiProvider(data: {
+    config: { textProvider: string; textModel: string | null };
+    keys: Record<string, string>;
+  }): Promise<any | null> {
     const { config, keys } = data;
     const apiKey = keys[config.textProvider];
     if (!apiKey) return null;
-    const model = config.textModel ?? DEFAULT_TEXT_MODELS[config.textProvider];
+    const model = config.textModel ?? DEFAULT_TEXT_MODELS[config.textProvider as TextProviderType];
     switch (config.textProvider) {
       case 'anthropic': {
         const { createAnthropic } = await import('@ai-sdk/anthropic');
@@ -116,6 +129,59 @@ export class AiProviderResolver {
     this.textCache.delete(userId);
     this.imageCache.delete(userId);
     this.langChainChatCache.delete(userId);
+    this.vercelAiCache.delete(userId);
+  }
+
+  async getTextProviderByOrgId(orgId: string): Promise<TextProvider | null> {
+    const cacheKey = `org:${orgId}`;
+    const cached = this.textCache.get(cacheKey);
+    if (cached) return cached;
+    const data = await this.configService.getDecryptedKeysByOrgId(orgId);
+    if (!data) return null;
+    const { config, keys } = data;
+    const apiKey = keys[config.textProvider];
+    if (!apiKey) return null;
+    const model = config.textModel ?? DEFAULT_TEXT_MODELS[config.textProvider];
+    const adapter = this.createTextAdapter(config.textProvider, apiKey, model);
+    this.textCache.set(cacheKey, adapter);
+    return adapter;
+  }
+
+  async getLangChainChatByOrgId(orgId: string): Promise<BaseChatModel | null> {
+    const cacheKey = `org:${orgId}`;
+    const cached = this.langChainChatCache.get(cacheKey);
+    if (cached) return cached;
+    const data = await this.configService.getDecryptedKeysByOrgId(orgId);
+    if (!data) return null;
+    const { config, keys } = data;
+    const apiKey = keys[config.textProvider];
+    if (!apiKey) return null;
+    const model = config.textModel ?? DEFAULT_TEXT_MODELS[config.textProvider];
+    const chatModel = createLangChainChat(config.textProvider, apiKey, model);
+    this.langChainChatCache.set(cacheKey, chatModel);
+    return chatModel;
+  }
+
+  async getLangChainImageByOrgId(
+    orgId: string
+  ): Promise<LangChainImageWrapper | null> {
+    const cacheKey = `org:${orgId}`;
+    const cached = this.imageCache.get(cacheKey);
+    if (cached) return new LangChainImageWrapper(cached);
+    const data = await this.configService.getDecryptedKeysByOrgId(orgId);
+    if (!data || !data.config.imageProvider) return null;
+    const { config, keys } = data;
+    const apiKey = keys[config.imageProvider];
+    if (!apiKey) return null;
+    const model =
+      config.imageModel ?? DEFAULT_IMAGE_MODELS[config.imageProvider];
+    const adapter = this.createImageAdapter(
+      config.imageProvider,
+      apiKey,
+      model
+    );
+    this.imageCache.set(cacheKey, adapter);
+    return new LangChainImageWrapper(adapter);
   }
 
   private createTextAdapter(

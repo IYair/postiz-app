@@ -207,7 +207,7 @@ export class AutopostService {
       };
     }
 
-    const llm = await this._resolver.getLangChainChat(
+    const llm = await this._resolver.getLangChainChatByOrgId(
       state.integrations[0]?.organizationId ?? state.body.organizationId
     );
     if (!llm) {
@@ -245,7 +245,7 @@ export class AutopostService {
     const orgId =
       state.integrations[0]?.organizationId ?? state.body.organizationId;
 
-    const llm = await this._resolver.getLangChainChat(orgId);
+    const llm = await this._resolver.getLangChainChatByOrgId(orgId);
     if (!llm) {
       this.logger.warn('No text AI provider configured; skipping picture prompt generation.');
       return { ...state };
@@ -266,7 +266,7 @@ export class AutopostService {
           content: state.load.description || state.description,
         });
 
-    const imageWrapper = await this._resolver.getLangChainImage(orgId);
+    const imageWrapper = await this._resolver.getLangChainImageByOrgId(orgId);
     if (!imageWrapper) {
       this.logger.warn('No image AI provider configured; skipping picture generation.');
       return { ...state };

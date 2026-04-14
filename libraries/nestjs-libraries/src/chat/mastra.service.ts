@@ -6,21 +6,24 @@ import { LoadToolsService } from '@gitroom/nestjs-libraries/chat/load.tools.serv
 
 @Injectable()
 export class MastraService {
-  static mastra: Mastra;
+  private static instances = new Map<string, Mastra>();
   constructor(private _loadToolsService: LoadToolsService) {}
   async mastra(userId?: string) {
-    MastraService.mastra =
-      MastraService.mastra ||
-      new Mastra({
-        storage: pStore,
-        agents: {
-          postiz: await this._loadToolsService.agent(userId),
-        },
-        logger: new ConsoleLogger({
-          level: 'info',
-        }),
-      });
+    const cacheKey = userId ?? '__default__';
+    const existing = MastraService.instances.get(cacheKey);
+    if (existing) return existing;
 
-    return MastraService.mastra;
+    const instance = new Mastra({
+      storage: pStore,
+      agents: {
+        postiz: await this._loadToolsService.agent(userId),
+      },
+      logger: new ConsoleLogger({
+        level: 'info',
+      }),
+    });
+
+    MastraService.instances.set(cacheKey, instance);
+    return instance;
   }
 }

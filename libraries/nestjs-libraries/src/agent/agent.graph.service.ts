@@ -387,7 +387,7 @@ export class AgentGraphService {
   }
 
   async start(orgId: string, body: GeneratorDto) {
-    const model = await this._resolver.getLangChainChat(orgId);
+    const model = await this._resolver.getLangChainChatByOrgId(orgId);
     if (!model) {
       this.logger.warn(
         'No text AI provider configured for org %s; cannot run agent graph.',
@@ -396,7 +396,7 @@ export class AgentGraphService {
       return (async function* () {})();
     }
 
-    const imageWrapper = await this._resolver.getLangChainImage(orgId);
+    const imageWrapper = await this._resolver.getLangChainImageByOrgId(orgId);
 
     const state = AgentGraphService.state();
     const workflow = state

@@ -54,6 +54,23 @@ export class AiConfigService {
     const row = await this._aiConfigRepository.findByUserId(userId);
     if (!row) return null;
 
+    return this.decryptRow(row);
+  }
+
+  async getDecryptedKeysByOrgId(orgId: string) {
+    const row = await this._aiConfigRepository.findByOrgId(orgId);
+    if (!row) return null;
+
+    return this.decryptRow(row);
+  }
+
+  private decryptRow(row: {
+    textProvider: string;
+    imageProvider: string | null;
+    textModel: string | null;
+    imageModel: string | null;
+    encryptedKeys: unknown;
+  }) {
     const parsed = EncryptedKeysSchema.parse(row.encryptedKeys);
     const keys: Record<string, string> = {};
 
@@ -73,10 +90,20 @@ export class AiConfigService {
   }
 
   async saveConfig(userId: string, dto: UserAiConfigDto) {
-    const encryptedKeys: Record<string, string> = {};
+    // Read existing config to preserve keys not being updated
+    const existing = await this._aiConfigRepository.findByUserId(userId);
+    const mergedKeys: Record<string, string> = {};
 
+    if (existing) {
+      const parsed = EncryptedKeysSchema.parse(existing.encryptedKeys);
+      for (const [provider, encKey] of Object.entries(parsed)) {
+        if (encKey) mergedKeys[provider] = encKey;
+      }
+    }
+
+    // Encrypt only the new keys provided, overwriting existing ones
     for (const [provider, key] of Object.entries(dto.keys)) {
-      if (key) encryptedKeys[provider] = encryptApiKey(key);
+      if (key) mergedKeys[provider] = encryptApiKey(key);
     }
 
     return this._aiConfigRepository.upsert(userId, {
@@ -84,7 +111,7 @@ export class AiConfigService {
       imageProvider: dto.imageProvider,
       textModel: dto.textModel,
       imageModel: dto.imageModel,
-      encryptedKeys,
+      encryptedKeys: mergedKeys,
     });
   }
 
