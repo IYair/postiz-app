@@ -58,6 +58,7 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
 import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
+import { BottomSheet } from '@gitroom/frontend/components/ui/bottom.sheet';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -1035,6 +1036,8 @@ const CalendarItem: FC<{
     missingRelease,
   } = props;
   const { disableXAnalytics } = useVariables();
+  const isMobile = useIsMobile();
+  const [actionsOpen, setActionsOpen] = useState(false);
   const preview = useCallback(() => {
     window.open(`/p/` + post.id + '?share=true', '_blank');
   }, [post]);
@@ -1049,8 +1052,9 @@ const CalendarItem: FC<{
       collect: (monitor) => ({
         opacity: monitor.isDragging() ? 0 : 1,
       }),
+      canDrag: () => !isMobile,
     }),
-    []
+    [isMobile]
   );
   return (
     <div
@@ -1065,6 +1069,14 @@ const CalendarItem: FC<{
         opacity,
       }}
     >
+      <button
+        onClick={(e) => { e.stopPropagation(); setActionsOpen(true); }}
+        className="md:hidden absolute end-[4px] top-[4px] w-[32px] h-[32px] flex items-center justify-center rounded-[4px] bg-newBgColor text-[18px] leading-none z-10"
+        aria-label={t('post_actions', 'Post actions')}
+        aria-haspopup="menu"
+      >
+        &#x22EF;
+      </button>
       {state === 'ERROR' && (
         <div
           className="absolute -top-[6px] -left-[6px] z-20 w-[18px] h-[18px] rounded-full bg-red-500 flex items-center justify-center text-white text-[11px] font-bold cursor-pointer"
@@ -1093,7 +1105,7 @@ const CalendarItem: FC<{
         {copyDebugJson && (
           <div
             className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
+              'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
             )}
             onClick={copyDebugJson}
@@ -1103,7 +1115,7 @@ const CalendarItem: FC<{
         )}
         <div
           className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
+            'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
           onClick={duplicatePost}
@@ -1112,7 +1124,7 @@ const CalendarItem: FC<{
         </div>
         <div
           className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
+            'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
           onClick={preview}
@@ -1124,7 +1136,7 @@ const CalendarItem: FC<{
         ) : post.releaseId === 'missing' && missingRelease ? (
           <div
             className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
+              'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
             )}
             onClick={missingRelease}
@@ -1134,7 +1146,7 @@ const CalendarItem: FC<{
         ) : post.releaseId !== 'missing' ? (
           <div
             className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
+              'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
             )}
             onClick={statistics}
@@ -1146,7 +1158,7 @@ const CalendarItem: FC<{
         )}{' '}
         <div
           className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
+            'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
           onClick={deletePost}
@@ -1189,6 +1201,63 @@ const CalendarItem: FC<{
           </div>
         )}
       </div>
+      <BottomSheet
+        open={isMobile && actionsOpen}
+        onClose={() => setActionsOpen(false)}
+        label={t('post_actions', 'Post actions')}
+      >
+        <div className="flex flex-col p-[16px] gap-[4px]">
+          <button
+            className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+            onClick={() => { setActionsOpen(false); editPost(); }}
+          >
+            {t('edit', 'Edit')}
+          </button>
+          <button
+            className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+            onClick={() => { setActionsOpen(false); duplicatePost(); }}
+          >
+            {t('duplicate', 'Duplicate')}
+          </button>
+          <button
+            className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+            onClick={() => { setActionsOpen(false); preview(); }}
+          >
+            {t('preview', 'Preview')}
+          </button>
+          {!((post.integration.providerIdentifier === 'x' && disableXAnalytics) || !post.releaseId) && (
+            post.releaseId === 'missing' && missingRelease ? (
+              <button
+                className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+                onClick={() => { setActionsOpen(false); missingRelease(); }}
+              >
+                {t('statistics', 'Statistics')}
+              </button>
+            ) : post.releaseId !== 'missing' ? (
+              <button
+                className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+                onClick={() => { setActionsOpen(false); statistics(); }}
+              >
+                {t('statistics', 'Statistics')}
+              </button>
+            ) : null
+          )}
+          {copyDebugJson && (
+            <button
+              className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+              onClick={() => { setActionsOpen(false); copyDebugJson(); }}
+            >
+              {t('copy_debug_json', 'Copy debug JSON')}
+            </button>
+          )}
+          <button
+            className="h-[48px] text-start px-[12px] rounded-[8px] text-red-500 hover:bg-boxHover"
+            onClick={() => { setActionsOpen(false); deletePost(); }}
+          >
+            {t('delete', 'Delete')}
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   );
 });
