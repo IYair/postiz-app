@@ -52,24 +52,18 @@ export class LoadToolsService {
     }
     if (!model) {
       // Fallback: try openai from env for backwards compatibility
-      try {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (apiKey) {
         const { createOpenAI } = await import('@ai-sdk/openai');
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-          throw new HttpException(
-            'Text AI provider not configured.',
-            422
-          );
-        }
         const provider = createOpenAI({ apiKey });
         model = provider('gpt-4o');
-      } catch (err) {
-        if (err instanceof HttpException) throw err;
-        throw new HttpException(
-          'Text AI provider not configured.',
-          422
-        );
       }
+    }
+    if (!model) {
+      throw new HttpException(
+        'Text AI provider not configured. Go to Settings > AI Providers.',
+        422
+      );
     }
 
     return new Agent({

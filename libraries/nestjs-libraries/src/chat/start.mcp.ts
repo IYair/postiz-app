@@ -32,18 +32,24 @@ export const startMcp = async (app: INestApplication) => {
     return organizationService.getOrgByApiKey(token);
   };
 
-  const mastra = await mastraService.mastra();
-  const agent = mastra.getAgent('postiz');
-  const tools = await agent.listTools();
+  let mastra: Awaited<ReturnType<typeof mastraService.mastra>> | null = null;
+  let serverConfig: any = null;
 
-  const serverConfig = {
-    name: 'Postiz MCP',
-    version: '1.0.0',
-    tools,
-    agents: { postiz: agent },
-  };
+  try {
+    mastra = await mastraService.mastra();
+    const agent = mastra.getAgent('postiz');
+    const tools = await agent.listTools();
+    serverConfig = {
+      name: 'Postiz MCP',
+      version: '1.0.0',
+      tools,
+      agents: { postiz: agent },
+    };
+  } catch (e) {
+    console.log('MCP: No AI provider configured yet, MCP server will initialize on first request');
+  }
 
-  const server = new MCPServer(serverConfig);
+  const server = serverConfig ? new MCPServer(serverConfig) : null;
 
   const oauthMiddleware = createOAuthMiddleware({
     oauth: {
@@ -101,6 +107,11 @@ export const startMcp = async (app: INestApplication) => {
       return;
     }
 
+    if (!server) {
+      res.status(503).json({ error: 'MCP server not available. Configure an AI provider in Settings > AI Providers.' });
+      return;
+    }
+
     const url = new URL('/mcp-oauth', process.env.NEXT_PUBLIC_BACKEND_URL);
 
     const result = await oauthMiddleware(req, res, url);
@@ -134,6 +145,11 @@ export const startMcp = async (app: INestApplication) => {
     // Skip if this is the /mcp/:id route
     if (req.path !== '/' && req.path !== '') {
       next();
+      return;
+    }
+
+    if (!server) {
+      res.status(503).json({ error: 'MCP server not available. Configure an AI provider in Settings > AI Providers.' });
       return;
     }
 
@@ -183,6 +199,11 @@ export const startMcp = async (app: INestApplication) => {
   });
 
   app.use('/mcp/:id', async (req: Request, res: Response) => {
+    if (!server) {
+      res.status(503).json({ error: 'MCP server not available. Configure an AI provider in Settings > AI Providers.' });
+      return;
+    }
+
     // @ts-ignore
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
