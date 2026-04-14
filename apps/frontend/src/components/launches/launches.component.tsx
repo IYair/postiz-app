@@ -1,7 +1,7 @@
 'use client';
 
 import { AddProviderButton } from '@gitroom/frontend/components/launches/add.provider.component';
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { capitalize, groupBy, orderBy } from 'lodash';
 import { CalendarWeekProvider } from '@gitroom/frontend/components/launches/calendar.context';
@@ -85,6 +85,7 @@ interface MenuComponentInterface {
   mutate: (shouldReload?: boolean) => void;
   update: (shouldReload: boolean) => void;
   onItemClick?: () => void;
+  isMobile: boolean;
 }
 export const OpenClose: FC<{
   isOpen: boolean;
@@ -135,6 +136,7 @@ export const MenuGroupComponent: FC<
     changeItemGroup,
     collapsed,
     onItemClick,
+    isMobile,
   } = props;
   const [isOpen, setIsOpen] = useState(
     !!+(localStorage.getItem(group.name + '_isOpen') || '1')
@@ -212,6 +214,7 @@ export const MenuGroupComponent: FC<
             refreshChannel={refreshChannel}
             totalNonDisabledChannels={totalNonDisabledChannels}
             onItemClick={onItemClick}
+            isMobile={isMobile}
           />
         ))}
       </div>
@@ -237,10 +240,10 @@ export const MenuComponent: FC<
     integration,
     collapsed,
     onItemClick,
+    isMobile,
   } = props;
   const user = useUser();
   const t = useT();
-  const isMobile = useIsMobile();
   const [collected, drag, dragPreview] = useDrag(() => ({
     type: 'menu',
     item: {
@@ -248,7 +251,7 @@ export const MenuComponent: FC<
     },
     canDrag: () => !isMobile,
   }), [isMobile]);
-  const handleRootClick = (e: React.MouseEvent) => {
+  const handleRootClick = () => {
     if (integration.refreshNeeded) {
       refreshChannel(integration)();
     }
@@ -291,11 +294,11 @@ export const MenuComponent: FC<
         {(integration.inBetweenSteps || integration.refreshNeeded) && (
           <div
             className="absolute start-0 top-0 w-[39px] h-[46px] cursor-pointer"
-            onClick={
-              integration.refreshNeeded
-                ? refreshChannel(integration)
-                : continueIntegration(integration)
-            }
+            onClick={(e) => {
+              e.stopPropagation();
+              if (integration.refreshNeeded) refreshChannel(integration)();
+              else continueIntegration(integration)();
+            }}
           >
             <div className="bg-red-500 w-[15px] h-[15px] rounded-full start-[5px] top-[5px] absolute z-[200] text-[10px] flex justify-center items-center">
               !
@@ -379,6 +382,7 @@ export const LaunchesComponent = () => {
   const { isLoading, data: integrations, mutate } = useIntegrationList();
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const hamburgerRef = useRef<HTMLButtonElement | null>(null);
 
   const totalNonDisabledChannels = useMemo(() => {
     return (
@@ -501,6 +505,15 @@ export const LaunchesComponent = () => {
       window.close();
     }
   }, []);
+  useEffect(() => {
+    if (!(isMobile && drawerOpen)) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isMobile, drawerOpen]);
+
   if (isLoading || reload) {
     return (
       <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] transition-all items-center justify-center">
@@ -528,6 +541,13 @@ export const LaunchesComponent = () => {
             isMobile && !drawerOpen && 'max-md:-translate-x-full rtl:max-md:translate-x-full',
             collapseMenu === '1' ? 'md:group md:sidebar md:w-[100px]' : 'md:w-[260px]'
           )}
+          {...(isMobile && {
+            id: 'channels-drawer',
+            role: 'dialog',
+            'aria-modal': drawerOpen,
+            'aria-label': 'Channels',
+            'aria-hidden': !drawerOpen,
+          })}
         >
           <div
             className={clsx(
@@ -603,7 +623,8 @@ export const LaunchesComponent = () => {
                   update={update}
                   refreshChannel={refreshChannel}
                   totalNonDisabledChannels={totalNonDisabledChannels}
-                  onItemClick={() => setDrawerOpen(false)}
+                  onItemClick={isMobile ? () => setDrawerOpen(false) : undefined}
+                  isMobile={isMobile}
                 />
               ))}
             </div>
@@ -622,13 +643,14 @@ export const LaunchesComponent = () => {
         <div className="bg-newBgColorInner flex-1 flex-col flex p-[12px] md:p-[20px] gap-[12px] min-w-0">
           <div className="flex items-center gap-[8px] md:hidden">
             <button
+              ref={hamburgerRef}
               onClick={() => setDrawerOpen(true)}
-              className="w-[40px] h-[40px] flex items-center justify-center rounded-[8px] border border-newTableBorder bg-newBgColorInner"
+              className="w-[40px] h-[40px] flex items-center justify-center rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[20px] leading-none"
               aria-label="Open channels"
+              aria-expanded={drawerOpen}
+              aria-controls="channels-drawer"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+              ☰
             </button>
           </div>
           <Filters />
