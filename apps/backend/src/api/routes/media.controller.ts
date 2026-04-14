@@ -55,18 +55,20 @@ export class MediaController {
   async generateImage(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
-    @Body('prompt') prompt: string,
-    isPicturePrompt = false
+    @Body('prompt') prompt: string
   ) {
     const total = await this._subscriptionService.checkCredits(org);
     if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
       return false;
     }
 
+    const result = await this._mediaService.generateImage(prompt, org, false, user.id);
+    const base64 = Buffer.isBuffer(result)
+      ? result.toString('base64')
+      : result;
+
     return {
-      output:
-        (isPicturePrompt ? '' : 'data:image/png;base64,') +
-        (await this._mediaService.generateImage(prompt, org, isPicturePrompt, user.id)),
+      output: 'data:image/png;base64,' + base64,
     };
   }
 
@@ -76,14 +78,26 @@ export class MediaController {
     @GetUserFromRequest() user: User,
     @Body('prompt') prompt: string
   ) {
-    const image = await this.generateImage(org, user, prompt, true);
-    if (!image) {
+    const total = await this._subscriptionService.checkCredits(org);
+    if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
       return false;
     }
 
-    const file = await this.storage.uploadSimple(image.output);
+    const result = await this._mediaService.generateImage(prompt, org, true, user.id);
+    if (!result) {
+      return false;
+    }
 
-    return this._mediaService.saveFile(org.id, file.split('/').pop(), file);
+    // Convert result to Buffer for direct upload
+    const imageData = Buffer.isBuffer(result)
+      ? result
+      : Buffer.from(
+          String(result).replace(/^data:image\/\w+;base64,/, ''),
+          'base64'
+        );
+    const file = await this.storage.uploadSimple(imageData);
+
+    return this._mediaService.saveFile(org.id, file.split('/').pop()!, file);
   }
 
   @Post('/upload-server')
