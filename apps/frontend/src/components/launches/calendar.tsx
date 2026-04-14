@@ -57,6 +57,7 @@ import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -565,13 +566,15 @@ export const ListView = () => {
 
 export const Calendar = () => {
   const { display } = useCalendar();
+  const isMobile = useIsMobile();
+  const effectiveDisplay = isMobile && display === 'week' ? 'day' : display;
   return (
     <>
-      {display === 'list' ? (
+      {effectiveDisplay === 'list' ? (
         <ListView />
-      ) : display === 'day' ? (
+      ) : effectiveDisplay === 'day' ? (
         <DayView />
-      ) : display === 'week' ? (
+      ) : effectiveDisplay === 'week' ? (
         <WeekView />
       ) : (
         <MonthView />
