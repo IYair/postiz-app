@@ -529,17 +529,17 @@ export const LaunchesComponent = () => {
       <CalendarWeekProvider integrations={sortedIntegrations}>
         {isMobile && drawerOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-[9998] md:hidden"
+            className="fixed inset-0 bg-black/50 z-[9998] lg:hidden"
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
         )}
         <div
           className={clsx(
-            'flex relative flex-col transition-transform',
-            'max-md:fixed max-md:inset-y-0 max-md:start-0 max-md:z-[9999] max-md:w-[280px] max-md:bg-newBgColorInner',
-            isMobile && !drawerOpen && 'max-md:-translate-x-full rtl:max-md:translate-x-full',
-            collapseMenu === '1' ? 'md:group md:sidebar md:w-[100px]' : 'md:w-[260px]'
+            'flex relative flex-col transition-transform duration-300 ease-in-out',
+            'max-lg:fixed max-lg:inset-y-0 max-lg:start-0 max-lg:z-[9999] max-lg:w-[280px] max-lg:max-w-[80vw] max-lg:bg-newBgColorInner',
+            isMobile && !drawerOpen && 'max-lg:-translate-x-full rtl:max-lg:translate-x-full',
+            collapseMenu === '1' ? 'lg:group lg:sidebar lg:w-[100px]' : 'lg:w-[260px]'
           )}
           {...(isMobile && {
             id: 'channels-drawer',
@@ -640,8 +640,8 @@ export const LaunchesComponent = () => {
             </div>
           </div>
         </div>
-        <div className="bg-newBgColorInner flex-1 flex-col flex p-[12px] md:p-[20px] gap-[12px] min-w-0">
-          <div className="flex items-center gap-[8px] md:hidden">
+        <div className="bg-newBgColorInner flex-1 flex-col flex p-[12px] lg:p-[20px] gap-[12px] min-w-0">
+          <div className="flex items-center gap-[8px] lg:hidden">
             <button
               ref={hamburgerRef}
               onClick={() => setDrawerOpen(true)}

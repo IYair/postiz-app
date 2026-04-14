@@ -286,9 +286,9 @@ export const Filters = () => {
   }, [calendar]);
 
   return (
-    <div className="text-textColor flex flex-col md:flex-row gap-[8px] md:items-center select-none">
+    <div className="text-textColor flex flex-col lg:flex-row gap-[8px] lg:items-center select-none">
       {!isListView && (
-        <div className="flex flex-grow flex-row items-center gap-[10px] w-full md:w-auto">
+        <div className="flex flex-grow flex-row items-center gap-[10px] w-full lg:w-auto">
           <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden">
             <div
               onClick={previous}
@@ -310,7 +310,7 @@ export const Filters = () => {
                 />
               </svg>
             </div>
-            <div className="min-w-[140px] md:min-w-[200px] flex-1 md:flex-none text-center bg-newBgColorInner h-full flex items-center justify-center">
+            <div className="min-w-[140px] lg:min-w-[200px] flex-1 lg:flex-none text-center bg-newBgColorInner h-full flex items-center justify-center">
               <div className="py-[3px] px-[9px] rounded-[5px] transition-all text-[14px]">
                 {getDisplayText()}
               </div>
@@ -349,7 +349,7 @@ export const Filters = () => {
         </div>
       )}
       {isListView && (
-        <div className="flex flex-grow flex-row items-center gap-[10px] w-full md:w-auto">
+        <div className="flex flex-grow flex-row items-center gap-[10px] w-full lg:w-auto">
           <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden">
             <div
               onClick={previousPage}
@@ -376,7 +376,7 @@ export const Filters = () => {
                 />
               </svg>
             </div>
-            <div className="min-w-[140px] md:min-w-[200px] flex-1 md:flex-none text-center bg-newBgColorInner h-full flex items-center justify-center">
+            <div className="min-w-[140px] lg:min-w-[200px] flex-1 lg:flex-none text-center bg-newBgColorInner h-full flex items-center justify-center">
               <div className="py-[3px] px-[9px] rounded-[5px] transition-all text-[14px]">
                 {t('page', 'Page')} {calendar.listPage + 1} {t('of', 'of')} {Math.max(1, calendar.listTotalPages)}
               </div>
@@ -416,10 +416,10 @@ export const Filters = () => {
         integrations={calendar.integrations}
       />
       {!isListView && (
-        <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] w-full md:w-auto">
+        <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] w-full lg:w-auto">
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer flex-1 md:w-[74px] text-center rounded-[6px] whitespace-nowrap',
+              'pt-[6px] pb-[5px] cursor-pointer flex-1 lg:w-[74px] text-center rounded-[6px] whitespace-nowrap',
               calendar.display === 'day' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setDay}
@@ -428,7 +428,7 @@ export const Filters = () => {
           </div>
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer flex-1 md:w-[74px] text-center rounded-[6px] whitespace-nowrap hidden md:block',
+              'pt-[6px] pb-[5px] cursor-pointer flex-1 lg:w-[74px] text-center rounded-[6px] whitespace-nowrap hidden lg:block',
               calendar.display === 'week' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setWeek}
@@ -437,7 +437,7 @@ export const Filters = () => {
           </div>
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer flex-1 md:w-[74px] text-center rounded-[6px] whitespace-nowrap',
+              'pt-[6px] pb-[5px] cursor-pointer flex-1 lg:w-[74px] text-center rounded-[6px] whitespace-nowrap',
               calendar.display === 'month' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setMonth}
@@ -446,7 +446,7 @@ export const Filters = () => {
           </div>
         </div>
       )}
-      <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] self-start md:self-auto">
+      <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] self-start lg:self-auto">
         <div
           onClick={setCalendarView}
           className={clsx(

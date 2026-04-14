@@ -467,11 +467,11 @@ export const MonthView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
-        <div className="grid grid-cols-7 grid-rows-[48px_auto] md:grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
+        <div className="grid grid-cols-7 grid-rows-[48px_auto] lg:grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
           {localizedDays.map((day) => (
             <div
               key={day}
-              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[48px] md:h-[62px] rounded-[8px] sticky top-0"
+              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[48px] lg:h-[62px] rounded-[8px] sticky top-0"
             >
               <div>{day}</div>
             </div>
@@ -482,7 +482,7 @@ export const MonthView = () => {
             return (
               <div
                 key={index}
-                className="text-center items-center justify-center flex cursor-pointer md:cursor-default"
+                className="text-center items-center justify-center flex cursor-pointer lg:cursor-default"
                 onClick={() => {
                   if (isMobile) {
                     setFilters({
@@ -693,14 +693,14 @@ export const CalendarColumn: FC<{
             modal.openModal({
               title: t('what_do_you_want_to_do', 'What do you want to do?'),
               children: (
-                <div className="flex flex-col w-screen h-[100dvh] max-w-none md:w-full md:h-auto md:max-w-[500px]">
+                <div className="flex flex-col w-screen h-[100dvh] max-w-none lg:w-full lg:h-auto lg:max-w-[500px]">
                   <div className="text-[20px] mb-[20px]">
                     {t(
                       'post_already_published_drag',
                       'This post was already published, what do you want to do?'
                     )}
                   </div>
-                  <div className="flex flex-col md:flex-row w-full gap-[10px]">
+                  <div className="flex flex-col lg:flex-row w-full gap-[10px]">
                     <div className="flex-1 flex">
                       <Button
                         type="button"
@@ -850,7 +850,7 @@ export const CalendarColumn: FC<{
       ref={drop as any}
     >
       {display === 'month' && (
-        <div className={clsx('pt-[6px] text-[12px] md:text-[14px]')}>{getDate.date()}</div>
+        <div className={clsx('pt-[6px] text-[12px] lg:text-[14px]')}>{getDate.date()}</div>
       )}
       <div
         className={clsx(
@@ -870,7 +870,7 @@ export const CalendarColumn: FC<{
               <div className="h-full w-full bg-newSettings rounded-[10px]" />
             </div>
           )}
-          <div className={clsx(display === 'month' ? 'hidden md:block' : '')}>
+          <div className={clsx(display === 'month' ? 'hidden lg:block' : '')}>
             {list.map((post) => (
               <div
                 key={post.id}
@@ -906,7 +906,7 @@ export const CalendarColumn: FC<{
             )}
           </div>
           {display === 'month' && (
-            <div className="md:hidden flex items-center justify-center mt-[4px]">
+            <div className="lg:hidden flex items-center justify-center mt-[4px]">
               {postList.length > 0 && (
                 <div className="w-[6px] h-[6px] rounded-full bg-primary" />
               )}
@@ -1071,7 +1071,7 @@ const CalendarItem: FC<{
     >
       <button
         onClick={(e) => { e.stopPropagation(); setActionsOpen(true); }}
-        className="md:hidden absolute end-[4px] top-[4px] w-[32px] h-[32px] flex items-center justify-center rounded-[4px] bg-newBgColor text-[18px] leading-none z-10"
+        className="lg:hidden absolute end-[4px] top-[4px] w-[32px] h-[32px] flex items-center justify-center rounded-[4px] bg-newBgColor text-[18px] leading-none z-10"
         aria-label={t('post_actions', 'Post actions')}
         aria-haspopup="menu"
       >
@@ -1105,7 +1105,7 @@ const CalendarItem: FC<{
         {copyDebugJson && (
           <div
             className={clsx(
-              'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
+              'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
             )}
             onClick={copyDebugJson}
@@ -1115,7 +1115,7 @@ const CalendarItem: FC<{
         )}
         <div
           className={clsx(
-            'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
+            'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
           onClick={duplicatePost}
@@ -1124,7 +1124,7 @@ const CalendarItem: FC<{
         </div>
         <div
           className={clsx(
-            'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
+            'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
           onClick={preview}
@@ -1136,7 +1136,7 @@ const CalendarItem: FC<{
         ) : post.releaseId === 'missing' && missingRelease ? (
           <div
             className={clsx(
-              'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
+              'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
             )}
             onClick={missingRelease}
@@ -1146,7 +1146,7 @@ const CalendarItem: FC<{
         ) : post.releaseId !== 'missing' ? (
           <div
             className={clsx(
-              'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
+              'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
             )}
             onClick={statistics}
@@ -1158,7 +1158,7 @@ const CalendarItem: FC<{
         )}{' '}
         <div
           className={clsx(
-            'hidden md:block md:opacity-0 md:group-hover:opacity-100 hover:underline cursor-pointer',
+            'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
           onClick={deletePost}
@@ -1368,7 +1368,7 @@ export const SetSelectionModal: FC<{
   const t = useT();
 
   return (
-    <div className="flex flex-col gap-4 w-screen h-[100dvh] max-w-none md:w-full md:h-auto md:max-w-[500px]">
+    <div className="flex flex-col gap-4 w-screen h-[100dvh] max-w-none lg:w-full lg:h-auto lg:max-w-[500px]">
       <div className="text-lg font-medium">
         {t('choose_set_or_continue', 'Choose a set or continue without one')}
       </div>
