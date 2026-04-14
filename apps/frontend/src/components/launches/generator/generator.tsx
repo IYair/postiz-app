@@ -205,6 +205,7 @@ const FirstStep: FC = (props) => {
                 <Textarea
                   label={t('write_anything', 'Write anything')}
                   disabled={loading}
+                  className="min-h-[120px] lg:min-h-[200px]"
                   placeholder={t(
                     'you_can_write_anything_you_want_and_also_add_links_we_will_do_the_research_for_you',
                     'You can write anything you want, and also add links, we will do the research for you...'
