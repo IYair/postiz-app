@@ -113,6 +113,7 @@ model User {
   sendFailureEmails     Boolean              @default(true)
   sendStreakEmails      Boolean              @default(true)
   oauthAuthorizations   OAuthAuthorization[]
+  aiConfig              UserAiConfig?
 
   @@unique([email, providerName])
   @@index([lastReadNotifications])
@@ -956,4 +957,19 @@ model Announcement {
   description String
   color       AnnouncementColor @default(INFO)
   createdAt   DateTime          @default(now())
+}
+
+model UserAiConfig {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  textProvider  String
+  imageProvider String?
+  textModel     String?
+  imageModel    String?
+  encryptedKeys Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("user_ai_config")
 }
