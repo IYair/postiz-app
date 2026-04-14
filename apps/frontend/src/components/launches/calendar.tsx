@@ -367,25 +367,25 @@ export const WeekView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 relative">
-        <div className="grid [grid-template-columns:48px_repeat(7,_minmax(48px,_1fr))] lg:[grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+        <div className="grid [grid-template-columns:64px_repeat(7,_minmax(120px,_1fr))] lg:[grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
           <div className="z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"></div>
           {localizedDays.map((day, index) => (
             <div
               key={day.name}
-              className="p-[4px] lg:p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20] min-w-0"
+              className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]"
             >
-              <div className="text-[11px] lg:text-[14px] font-[500] text-newTableText truncate max-w-full">
+              <div className="text-[14px] font-[500] text-newTableText">
                 {day.name}
               </div>
               <div
                 className={clsx(
-                  'text-[11px] lg:text-[14px] font-[600] flex items-center justify-center gap-[4px] lg:gap-[6px] truncate max-w-full',
+                  'text-[14px] font-[600] flex items-center justify-center gap-[6px]',
                   day.day === newDayjs().format('L') &&
                     'text-newTableTextFocused'
                 )}
               >
                 {day.day === newDayjs().format('L') && (
-                  <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full shrink-0" />
+                  <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
                 )}
                 {day.day}
               </div>
@@ -393,7 +393,7 @@ export const WeekView = () => {
           ))}
           {hours.map((hour) => (
             <Fragment key={hour}>
-              <div className="p-[4px] lg:p-2 lg:pe-4 text-center items-center justify-center flex text-[11px] lg:text-[14px] text-newTableText">
+              <div className="p-2 pe-2 lg:pe-4 text-center items-center justify-center flex text-[13px] lg:text-[14px] text-newTableText">
                 {convertTimeFormatBasedOnLocality(hour)}
               </div>
               {localizedDays.map((day, indexDay) => (
@@ -467,7 +467,7 @@ export const MonthView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
-        <div className="grid grid-cols-7 grid-rows-[48px_auto] lg:grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
+        <div className="grid [grid-template-columns:repeat(7,_minmax(140px,_1fr))] lg:grid-cols-7 grid-rows-[48px_auto] lg:grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
           {localizedDays.map((day) => (
             <div
               key={day}
@@ -868,7 +868,7 @@ export const CalendarColumn: FC<{
               <div className="h-full w-full bg-newSettings rounded-[10px]" />
             </div>
           )}
-          <div className={clsx(display === 'month' ? 'hidden lg:block' : '')}>
+          <div>
             {list.map((post) => (
               <div
                 key={post.id}
@@ -903,16 +903,6 @@ export const CalendarColumn: FC<{
               </div>
             )}
           </div>
-          {display === 'month' && (
-            <div className="lg:hidden flex items-center justify-center mt-[4px]">
-              {postList.length > 0 && (
-                <div className="w-[6px] h-[6px] rounded-full bg-primary" />
-              )}
-              {postList.length > 1 && (
-                <span className="ms-[4px] text-[10px] text-textColor">{postList.length}</span>
-              )}
-            </div>
-          )}
           {showAll && postList.length > 3 && (
             <div
               className="text-center hover:underline py-[5px]"
