@@ -386,14 +386,14 @@ export class AgentGraphService {
     return { date: await this._postsService.findFreeDateTime(state.orgId) };
   }
 
-  async start(orgId: string, body: GeneratorDto) {
+  async *start(orgId: string, body: GeneratorDto) {
     const model = await this._resolver.getLangChainChatByOrgId(orgId);
     if (!model) {
       this.logger.warn(
         'No text AI provider configured for org %s; cannot run agent graph.',
         orgId
       );
-      return (async function* () {})();
+      return;
     }
 
     const imageWrapper = await this._resolver.getLangChainImageByOrgId(orgId);
@@ -431,7 +431,7 @@ export class AgentGraphService {
 
     const app = workflow.compile();
 
-    return app.streamEvents(
+    const stream = await app.streamEvents(
       {
         messages: [new HumanMessage(body.research)],
         isPicture: body.isPicture,
@@ -444,5 +444,7 @@ export class AgentGraphService {
         version: 'v2',
       }
     );
+
+    yield* stream;
   }
 }

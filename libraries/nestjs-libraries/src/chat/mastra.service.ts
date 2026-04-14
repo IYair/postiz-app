@@ -8,7 +8,7 @@ import { LoadToolsService } from '@gitroom/nestjs-libraries/chat/load.tools.serv
 export class MastraService {
   private static instances = new Map<string, Mastra>();
   constructor(private _loadToolsService: LoadToolsService) {}
-  async mastra(userId?: string) {
+  async mastra(userId?: string): Promise<Mastra> {
     const cacheKey = userId ?? '__default__';
     const existing = MastraService.instances.get(cacheKey);
     if (existing) return existing;

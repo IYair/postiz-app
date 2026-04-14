@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AiConfigRepository {
-  constructor(private _aiConfig: PrismaRepository<'userAiConfig'>) {}
+  constructor(private _aiConfig: PrismaRepository<'userAiConfig' | 'userOrganization'>) {}
 
   async findByUserId(userId: string) {
     return this._aiConfig.model.userAiConfig.findUnique({

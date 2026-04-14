@@ -53,7 +53,7 @@ export class CopilotController {
 
     const adapter = new LangChainAdapter({
       chainFn: async ({ messages }) => {
-        return chatModel.stream(messages);
+        return chatModel.stream(messages as any) as any;
       },
     });
 
@@ -81,7 +81,7 @@ export class CopilotController {
 
     const adapter = new LangChainAdapter({
       chainFn: async ({ messages }) => {
-        return chatModel.stream(messages);
+        return chatModel.stream(messages as any) as any;
       },
     });
 
