@@ -173,28 +173,32 @@ const Plug: FC<{
             )}
           >
             <div>{plug.description}</div>
-            <Select
-              label="Delay"
-              hideErrors={true}
-              {...register(`plug--${plug.identifier}--delay`)}
-            >
-              {delayOptions.map((p) => (
-                <option key={p.name} value={p.value}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-            {plug.fields.length > 0 && (
-              <div className="flex flex-col gap-[10px]">
-                {plug.fields.map((field) => (
-                  <PlugField
-                    key={field.name}
-                    plugIdentifier={plug.identifier}
-                    field={field}
-                  />
-                ))}
+            <div className="flex flex-col lg:flex-row lg:items-end gap-[10px]">
+              <div className="flex-1">
+                <Select
+                  label="Delay"
+                  hideErrors={true}
+                  {...register(`plug--${plug.identifier}--delay`)}
+                >
+                  {delayOptions.map((p) => (
+                    <option key={p.name} value={p.value}>
+                      {p.name}
+                    </option>
+                  ))}
+                </Select>
               </div>
-            )}
+              {plug.fields.length > 0 && (
+                <div className="flex flex-col gap-[10px] flex-1">
+                  {plug.fields.map((field) => (
+                    <PlugField
+                      key={field.name}
+                      plugIdentifier={plug.identifier}
+                      field={field}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
             <div>
               {t('accounts_that_will_engage', 'Accounts that will engage:')}
             </div>
