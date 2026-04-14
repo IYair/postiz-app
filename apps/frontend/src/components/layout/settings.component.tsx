@@ -32,6 +32,12 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { GlobalSettings } from '@gitroom/frontend/components/settings/global.settings';
 import { ApprovedAppsComponent } from '@gitroom/frontend/components/approved-apps/approved-apps.component';
+import dynamic from 'next/dynamic';
+
+const AiProviderComponent = dynamic(
+  () => import('@gitroom/frontend/components/settings/ai-provider.component'),
+  { ssr: false }
+);
 export const SettingsPopup: FC<{
   getRef?: Ref<any>;
 }> = (props) => {
@@ -106,6 +112,7 @@ export const SettingsPopup: FC<{
     if (user?.tier?.public_api && isGeneral && showLogout) {
       arr.push({ tab: 'api', label: t('developers', 'Developers') });
     }
+    arr.push({ tab: 'ai_providers', label: t('ai_providers', 'AI Providers') });
     arr.push({ tab: 'approved_apps', label: t('approved_apps', 'Approved Apps') });
 
     return arr;
@@ -203,6 +210,13 @@ export const SettingsPopup: FC<{
                     <PublicComponent />
                   </div>
                 )}
+
+              {tab === 'ai_providers' && (
+                <div>
+                  <h3 className="text-[20px] mb-[16px]">{t('ai_providers', 'AI Providers')}</h3>
+                  <AiProviderComponent />
+                </div>
+              )}
 
               {tab === 'approved_apps' && (
                 <div>
