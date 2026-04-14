@@ -447,9 +447,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
 
   return (
     <div className="w-full h-full flex-1 lg:p-[40px] flex relative">
-      <div className="flex flex-1 bg-newBgColorInner lg:rounded-[20px] flex-col">
+      <div className="flex flex-1 bg-newBgColorInner lg:rounded-[20px] flex-col min-h-0">
         {isMobile && (
-          <div className="sticky top-0 z-20 flex bg-newBgColorInner border-b border-newTableBorder">
+          <div className="sticky top-0 z-20 flex items-center bg-newBgColorInner border-b border-newTableBorder">
             {(['edit', 'preview'] as const).map((tab) => (
               <button
                 key={tab}
@@ -464,10 +464,17 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 {tab === 'edit' ? t('edit', 'Editar') : t('preview', 'Vista previa')}
               </button>
             ))}
+            <button
+              onClick={askClose}
+              className="shrink-0 w-[44px] h-[44px] flex items-center justify-center text-[18px] text-textColor hover:text-white"
+              aria-label={t('close', 'Close')}
+            >
+              ✕
+            </button>
           </div>
         )}
-        <div className="flex-1 flex flex-col lg:flex-row">
-          <div className={clsx('flex flex-col flex-1 min-w-0 lg:border-e border-newBorder', isMobile && mobileTab !== 'edit' && 'hidden')}>
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+          <div className={clsx('flex flex-col flex-1 min-w-0 min-h-0 lg:border-e border-newBorder', isMobile && mobileTab !== 'edit' && 'hidden')}>
             <div className="bg-newBgColor h-[65px] lg:rounded-s-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
               {t('create_post_title', 'Create Post')}
             </div>
@@ -553,14 +560,15 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               </div>
             </div>
           </div>
-          <div className={clsx('w-full lg:w-[580px] flex flex-col', isMobile && mobileTab !== 'preview' && 'hidden')}>
+          <div className={clsx('w-full lg:w-[580px] flex flex-col min-h-0', isMobile && mobileTab !== 'preview' && 'hidden', !isMobile || mobileTab === 'preview' ? 'flex-1' : '')}>
             <div className="bg-newBgColor h-[65px] lg:rounded-e-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
               <div className="flex-1">{t('post_preview', 'Post Preview')}</div>
-              <div className="cursor-pointer">
+              {/* Close button: visible on desktop; hidden on mobile (tab bar has its own ✕) */}
+              <div className="hidden lg:block cursor-pointer">
                 <CloseIcon onClick={askClose} className="text-[#A3A3A3]" />
               </div>
             </div>
-            <div className="flex-1 relative">
+            <div className="flex-1 min-h-0 relative">
               <Scrollable
                 scrollClasses="!pe-[20px]"
                 className="absolute top-0 p-[20px] pe-[8px] left-0 w-full h-full overflow-x-hidden overflow-y-scroll scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner"

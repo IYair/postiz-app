@@ -426,7 +426,33 @@ export const EditorWrapper: FC<{
             ((!canEdit && index > 0) || (!comments && index > 0)) && 'hidden'
           )}
         >
-          <div className="flex gap-[5px] flex-1 w-full min-w-0">
+          <div className="relative flex gap-[5px] flex-1 w-full min-w-0">
+            {/* Mobile floating right-actions cluster (visible only when comments on + more than one item) */}
+            {comments && (
+              <div className="lg:hidden absolute top-[8px] end-[8px] z-10 flex items-center gap-[6px]">
+                <UpDownArrow
+                  isUp={index !== 0}
+                  isDown={index !== items.length - 1}
+                  onChange={changeOrder(index)}
+                />
+                {items.length > 1 && (
+                  <div className="w-[32px] h-[32px] flex items-center justify-center">
+                    <TrashIcon
+                      onClick={deletePost(index)}
+                      data-tooltip-id="tooltip"
+                      data-tooltip-content={t(
+                        'delete_post_tooltip',
+                        'Delete Post'
+                      )}
+                      className="cursor-pointer text-[#FF3F3F]"
+                    />
+                  </div>
+                )}
+                {index > 0 && (
+                  <DelayComponent currentIndex={index} currentDelay={g.delay} />
+                )}
+              </div>
+            )}
             <div className="flex-1 flex w-full min-w-0">
               {index > 0 && (
                 <div className="flex justify-center pl-[12px] text-newSep">
@@ -495,8 +521,9 @@ export const EditorWrapper: FC<{
                 }
               />
             </div>
+            {/* Desktop right-actions column — hidden on mobile (handled by the floating cluster above) */}
             {comments && (
-              <div className="flex flex-col items-center gap-[10px] pe-[12px]">
+              <div className="hidden lg:flex flex-col items-center gap-[10px] pe-[12px]">
                 <UpDownArrow
                   isUp={index !== 0}
                   isDown={index !== items.length - 1}
@@ -695,10 +722,10 @@ export const Editor: FC<{
   }
 
   return (
-    <div className="flex flex-col gap-[20px] flex-1">
+    <div className="flex flex-col gap-[20px] flex-1 w-full min-w-0">
       <div
         className={clsx(
-          'relative flex-1 px-[12px] pt-[12px] pb-[12px] flex flex-col',
+          'relative flex-1 px-[12px] pt-[12px] pb-[12px] flex flex-col w-full min-w-0',
           num > 0 && '!rounded-bs-[0]'
         )}
         id={id}
