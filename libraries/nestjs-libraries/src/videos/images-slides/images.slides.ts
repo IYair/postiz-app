@@ -69,9 +69,10 @@ export class ImagesSlides extends VideoAbstract<ImagesSlidesParams> {
 
   async process(
     output: 'vertical' | 'horizontal',
-    customParams: ImagesSlidesParams
+    customParams: ImagesSlidesParams & { userId?: string }
   ): Promise<URL> {
     const list = await this._openaiService.generateSlidesFromText(
+      customParams.userId || '',
       customParams.prompt
     );
 

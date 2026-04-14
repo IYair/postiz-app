@@ -47,9 +47,9 @@ export class HeygenProvider extends ThirdPartyAbstract<{
     };
   }
 
-  async generateVoice(apiKey: string, data: { text: string }) {
+  async generateVoice(apiKey: string, data: { text: string; userId?: string }) {
     return {
-      voice: await this._openaiService.generateVoiceFromText(data.text),
+      voice: await this._openaiService.generateVoiceFromText(data.userId || '', data.text),
     };
   }
 

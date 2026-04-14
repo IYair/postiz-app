@@ -1,12 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import OpenAI from 'openai';
+import { HttpException, Injectable } from '@nestjs/common';
 import { shuffle } from 'lodash';
-import { zodResponseFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-});
+import { AiProviderResolver } from '@gitroom/nestjs-libraries/ai/ai.provider-resolver';
+import { ChatMessage } from '@gitroom/nestjs-libraries/ai/ai.interfaces';
 
 const PicturePrompt = z.object({
   prompt: z.string(),
@@ -16,110 +12,132 @@ const VoicePrompt = z.object({
   voice: z.string(),
 });
 
+const SlidesSchema = z.object({
+  slides: z
+    .array(
+      z.object({
+        imagePrompt: z.string(),
+        voiceText: z.string(),
+      })
+    )
+    .describe('an array of slides'),
+});
+
 @Injectable()
 export class OpenaiService {
-  async generateImage(prompt: string, isUrl: boolean, isVertical = false) {
-    const generate = (
-      await openai.images.generate({
-        prompt,
-        response_format: isUrl ? 'url' : 'b64_json',
-        model: 'dall-e-3',
-        ...(isVertical ? { size: '1024x1792' } : {}),
-      })
-    ).data[0];
+  constructor(private resolver: AiProviderResolver) {}
 
-    return isUrl ? generate.url : generate.b64_json;
+  private async getTextProviderOrFail(userId: string) {
+    const textProvider = await this.resolver.getTextProvider(userId);
+    if (!textProvider) {
+      throw new HttpException(
+        'Text AI provider not configured. Go to Settings > AI Providers.',
+        422
+      );
+    }
+    return textProvider;
   }
 
-  async generatePromptForPicture(prompt: string) {
-    return (
-      (
-        await openai.chat.completions.parse({
-          model: 'gpt-4.1',
-          messages: [
-            {
-              role: 'system',
-              content: `You are an assistant that take a description and style and generate a prompt that will be used later to generate images, make it a very long and descriptive explanation, and write a lot of things for the renderer like, if it${"'"}s realistic describe the camera`,
-            },
-            {
-              role: 'user',
-              content: `prompt: ${prompt}`,
-            },
-          ],
-          response_format: zodResponseFormat(PicturePrompt, 'picturePrompt'),
-        })
-      ).choices[0].message.parsed?.prompt || ''
+  private async getImageProviderOrFail(userId: string) {
+    const imageProvider = await this.resolver.getImageProvider(userId);
+    if (!imageProvider) {
+      throw new HttpException(
+        'Image AI provider not configured. Go to Settings > AI Providers.',
+        422
+      );
+    }
+    return imageProvider;
+  }
+
+  async generateImage(
+    userId: string,
+    prompt: string,
+    isUrl: boolean,
+    isVertical = false
+  ) {
+    const imageProvider = await this.getImageProviderOrFail(userId);
+    const buffer = await imageProvider.generateImage(prompt, {
+      aspectRatio: isVertical ? 'portrait' : 'square',
+    });
+
+    if (isUrl) {
+      // Return as data URL when URL is requested
+      return `data:image/png;base64,${buffer.toString('base64')}`;
+    }
+
+    return buffer.toString('base64');
+  }
+
+  async generatePromptForPicture(userId: string, prompt: string) {
+    const textProvider = await this.getTextProviderOrFail(userId);
+    const result = await textProvider.generateStructured(
+      `You are an assistant that take a description and style and generate a prompt that will be used later to generate images, make it a very long and descriptive explanation, and write a lot of things for the renderer like, if it's realistic describe the camera.\n\nprompt: ${prompt}`,
+      PicturePrompt
     );
+    return result.prompt || '';
   }
 
-  async generateVoiceFromText(prompt: string) {
-    return (
-      (
-        await openai.chat.completions.parse({
-          model: 'gpt-4.1',
-          messages: [
-            {
-              role: 'system',
-              content: `You are an assistant that takes a social media post and convert it to a normal human voice, to be later added to a character, when a person talk they don\'t use "-", and sometimes they add pause with "..." to make it sounds more natural, make sure you use a lot of pauses and make it sound like a real person`,
-            },
-            {
-              role: 'user',
-              content: `prompt: ${prompt}`,
-            },
-          ],
-          response_format: zodResponseFormat(VoicePrompt, 'voice'),
-        })
-      ).choices[0].message.parsed?.voice || ''
+  async generateVoiceFromText(userId: string, prompt: string) {
+    const textProvider = await this.getTextProviderOrFail(userId);
+    const result = await textProvider.generateStructured(
+      `You are an assistant that takes a social media post and convert it to a normal human voice, to be later added to a character, when a person talk they don't use "-", and sometimes they add pause with "..." to make it sounds more natural, make sure you use a lot of pauses and make it sound like a real person.\n\nprompt: ${prompt}`,
+      VoicePrompt
     );
+    return result.voice || '';
   }
 
-  async generatePosts(content: string) {
-    const posts = (
-      await Promise.all([
-        openai.chat.completions.create({
-          messages: [
-            {
-              role: 'assistant',
-              content:
-                'Generate a Twitter post from the content without emojis in the following JSON format: { "post": string } put it in an array with one element',
-            },
-            {
-              role: 'user',
-              content: content!,
-            },
-          ],
-          n: 5,
-          temperature: 1,
-          model: 'gpt-4.1',
-        }),
-        openai.chat.completions.create({
-          messages: [
-            {
-              role: 'assistant',
-              content:
-                'Generate a thread for social media in the following JSON format: Array<{ "post": string }> without emojis',
-            },
-            {
-              role: 'user',
-              content: content!,
-            },
-          ],
-          n: 5,
-          temperature: 1,
-          model: 'gpt-4.1',
-        }),
-      ])
-    ).flatMap((p) => p.choices);
+  async generatePosts(userId: string, content: string) {
+    const textProvider = await this.getTextProviderOrFail(userId);
+
+    const [singlePosts, threadPosts] = await Promise.all([
+      Promise.all(
+        Array.from({ length: 5 }, () =>
+          textProvider.generateChat(
+            [
+              {
+                role: 'assistant',
+                content:
+                  'Generate a Twitter post from the content without emojis in the following JSON format: { "post": string } put it in an array with one element',
+              },
+              {
+                role: 'user',
+                content: content!,
+              },
+            ],
+            { temperature: 1 }
+          )
+        )
+      ),
+      Promise.all(
+        Array.from({ length: 5 }, () =>
+          textProvider.generateChat(
+            [
+              {
+                role: 'assistant',
+                content:
+                  'Generate a thread for social media in the following JSON format: Array<{ "post": string }> without emojis',
+              },
+              {
+                role: 'user',
+                content: content!,
+              },
+            ],
+            { temperature: 1 }
+          )
+        )
+      ),
+    ]);
+
+    const allResults = [...singlePosts, ...threadPosts];
 
     return shuffle(
-      posts.map((choice) => {
-        const { content } = choice.message;
-        const start = content?.indexOf('[')!;
-        const end = content?.lastIndexOf(']')!;
+      allResults.map((responseContent) => {
+        const start = responseContent?.indexOf('[')!;
+        const end = responseContent?.lastIndexOf(']')!;
         try {
           return JSON.parse(
             '[' +
-              content
+              responseContent
                 ?.slice(start + 1, end)
                 .replace(/\n/g, ' ')
                 .replace(/ {2,}/g, ' ') +
@@ -131,28 +149,25 @@ export class OpenaiService {
       })
     );
   }
-  async extractWebsiteText(content: string) {
-    const websiteContent = await openai.chat.completions.create({
-      messages: [
-        {
-          role: 'assistant',
-          content:
-            'You take a full website text, and extract only the article content',
-        },
-        {
-          role: 'user',
-          content,
-        },
-      ],
-      model: 'gpt-4.1',
-    });
 
-    const { content: articleContent } = websiteContent.choices[0].message;
+  async extractWebsiteText(userId: string, content: string) {
+    const textProvider = await this.getTextProviderOrFail(userId);
+    const articleContent = await textProvider.generateChat([
+      {
+        role: 'assistant',
+        content:
+          'You take a full website text, and extract only the article content',
+      },
+      {
+        role: 'user',
+        content,
+      },
+    ]);
 
-    return this.generatePosts(articleContent!);
+    return this.generatePosts(userId, articleContent!);
   }
 
-  async separatePosts(content: string, len: number) {
+  async separatePosts(userId: string, content: string, len: number) {
     const SeparatePostsPrompt = z.object({
       posts: z.array(z.string()),
     });
@@ -161,28 +176,16 @@ export class OpenaiService {
       post: z.string().max(len),
     });
 
-    const posts =
-      (
-        await openai.chat.completions.parse({
-          model: 'gpt-4.1',
-          messages: [
-            {
-              role: 'system',
-              content: `You are an assistant that take a social media post and break it to a thread, each post must be minimum ${
-                len - 10
-              } and maximum ${len} characters, keeping the exact wording and break lines, however make sure you split posts based on context`,
-            },
-            {
-              role: 'user',
-              content: content,
-            },
-          ],
-          response_format: zodResponseFormat(
-            SeparatePostsPrompt,
-            'separatePosts'
-          ),
-        })
-      ).choices[0].message.parsed?.posts || [];
+    const textProvider = await this.getTextProviderOrFail(userId);
+
+    const result = await textProvider.generateStructured(
+      `You are an assistant that take a social media post and break it to a thread, each post must be minimum ${
+        len - 10
+      } and maximum ${len} characters, keeping the exact wording and break lines, however make sure you split posts based on context.\n\n${content}`,
+      SeparatePostsPrompt
+    );
+
+    const posts = result.posts || [];
 
     return {
       posts: await Promise.all(
@@ -194,27 +197,11 @@ export class OpenaiService {
           let retries = 4;
           while (retries) {
             try {
-              return (
-                (
-                  await openai.chat.completions.parse({
-                    model: 'gpt-4.1',
-                    messages: [
-                      {
-                        role: 'system',
-                        content: `You are an assistant that take a social media post and shrink it to be maximum ${len} characters, keeping the exact wording and break lines`,
-                      },
-                      {
-                        role: 'user',
-                        content: post,
-                      },
-                    ],
-                    response_format: zodResponseFormat(
-                      SeparatePostPrompt,
-                      'separatePost'
-                    ),
-                  })
-                ).choices[0].message.parsed?.post || ''
+              const shrunk = await textProvider.generateStructured(
+                `You are an assistant that take a social media post and shrink it to be maximum ${len} characters, keeping the exact wording and break lines.\n\n${post}`,
+                SeparatePostPrompt
               );
+              return shrunk.post || '';
             } catch (e) {
               retries--;
             }
@@ -226,41 +213,16 @@ export class OpenaiService {
     };
   }
 
-  async generateSlidesFromText(text: string) {
+  async generateSlidesFromText(userId: string, text: string) {
+    const textProvider = await this.getTextProviderOrFail(userId);
+
     for (let i = 0; i < 3; i++) {
       try {
-        const message = `You are an assistant that takes a text and break it into slides, each slide should have an image prompt and voice text to be later used to generate a video and voice, image prompt should capture the essence of the slide and also have a back dark gradient on top, image prompt should not contain text in the picture, generate between 3-5 slides maximum`;
-        const parse =
-          (
-            await openai.chat.completions.parse({
-              model: 'gpt-4.1',
-              messages: [
-                {
-                  role: 'system',
-                  content: message,
-                },
-                {
-                  role: 'user',
-                  content: text,
-                },
-              ],
-              response_format: zodResponseFormat(
-                z.object({
-                  slides: z
-                    .array(
-                      z.object({
-                        imagePrompt: z.string(),
-                        voiceText: z.string(),
-                      })
-                    )
-                    .describe('an array of slides'),
-                }),
-                'slides'
-              ),
-            })
-          ).choices[0].message.parsed?.slides || [];
-
-        return parse;
+        const result = await textProvider.generateStructured(
+          `You are an assistant that takes a text and break it into slides, each slide should have an image prompt and voice text to be later used to generate a video and voice, image prompt should capture the essence of the slide and also have a back dark gradient on top, image prompt should not contain text in the picture, generate between 3-5 slides maximum.\n\n${text}`,
+          SlidesSchema
+        );
+        return result.slides || [];
       } catch (err) {
         console.log(err);
       }

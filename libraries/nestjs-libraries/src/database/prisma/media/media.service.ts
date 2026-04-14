@@ -35,17 +35,18 @@ export class MediaService {
   async generateImage(
     prompt: string,
     org: Organization,
-    generatePromptFirst?: boolean
+    generatePromptFirst?: boolean,
+    userId?: string
   ) {
     const generating = await this._subscriptionService.useCredit(
       org,
       'ai_images',
       async () => {
         if (generatePromptFirst) {
-          prompt = await this._openAi.generatePromptForPicture(prompt);
+          prompt = await this._openAi.generatePromptForPicture(userId!, prompt);
           console.log('Prompt:', prompt);
         }
-        return this._openAi.generateImage(prompt, !!generatePromptFirst);
+        return this._openAi.generateImage(userId!, prompt, !!generatePromptFirst);
       }
     );
 
@@ -81,7 +82,7 @@ export class MediaService {
     return true;
   }
 
-  async generateVideo(org: Organization, body: VideoDto) {
+  async generateVideo(org: Organization, body: VideoDto, userId?: string) {
     const totalCredits = await this._subscriptionService.checkCredits(
       org,
       'ai_videos'
@@ -107,13 +108,15 @@ export class MediaService {
     await video.instance.processAndValidate(body.customParams);
     console.log('no err');
 
+    const paramsWithUserId = { ...body.customParams, userId };
+
     return await this._subscriptionService.useCredit(
       org,
       'ai_videos',
       async () => {
         const loadedData = await video.instance.process(
           body.output,
-          body.customParams
+          paramsWithUserId
         );
 
         const file = await this.storage.uploadSimple(loadedData);

@@ -60,6 +60,7 @@ export class GenerateVideoTool implements AgentToolInterface {
       execute: async (inputData, context) => {
         checkAuth(inputData, context);
         const org = JSON.parse((context?.requestContext as any)?.get('organization') as string);
+        const userId = org?.users?.[0]?.userId || '';
         const value = await this._mediaService.generateVideo(org, {
           type: inputData.identifier,
           output: inputData.output,
@@ -70,7 +71,7 @@ export class GenerateVideoTool implements AgentToolInterface {
             }),
             {} as Record<string, any>
           ),
-        });
+        }, userId);
 
         return {
           url: value.path,

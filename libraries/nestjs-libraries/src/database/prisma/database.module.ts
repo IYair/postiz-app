@@ -36,6 +36,9 @@ import { ThirdPartyService } from '@gitroom/nestjs-libraries/database/prisma/thi
 import { VideoManager } from '@gitroom/nestjs-libraries/videos/video.manager';
 import { FalService } from '@gitroom/nestjs-libraries/openai/fal.service';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
+import { AiProviderResolver } from '@gitroom/nestjs-libraries/ai/ai.provider-resolver';
+import { AiConfigService } from '@gitroom/nestjs-libraries/database/prisma/ai-config/ai-config.service';
+import { AiConfigRepository } from '@gitroom/nestjs-libraries/database/prisma/ai-config/ai-config.repository';
 import { OAuthRepository } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.repository';
 import { OAuthService } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.service';
 import { AnnouncementsRepository } from '@gitroom/nestjs-libraries/database/prisma/announcements/announcements.repository';
@@ -89,6 +92,9 @@ import { AnnouncementsService } from '@gitroom/nestjs-libraries/database/prisma/
     VideoManager,
     AnnouncementsRepository,
     AnnouncementsService,
+    AiProviderResolver,
+    AiConfigService,
+    AiConfigRepository,
   ],
   get exports() {
     return this.providers;

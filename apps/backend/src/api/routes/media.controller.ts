@@ -14,7 +14,8 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
-import { Organization } from '@prisma/client';
+import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
+import { Organization, User } from '@prisma/client';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { ApiTags } from '@nestjs/swagger';
 import handleR2Upload from '@gitroom/nestjs-libraries/upload/r2.uploader';
@@ -43,16 +44,17 @@ export class MediaController {
   @Post('/generate-video')
   generateVideo(
     @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
     @Body() body: VideoDto
   ) {
     console.log('hello');
-    return this._mediaService.generateVideo(org, body);
+    return this._mediaService.generateVideo(org, body, user.id);
   }
 
   @Post('/generate-image')
   async generateImage(
     @GetOrgFromRequest() org: Organization,
-    @Req() req: Request,
+    @GetUserFromRequest() user: User,
     @Body('prompt') prompt: string,
     isPicturePrompt = false
   ) {
@@ -64,17 +66,17 @@ export class MediaController {
     return {
       output:
         (isPicturePrompt ? '' : 'data:image/png;base64,') +
-        (await this._mediaService.generateImage(prompt, org, isPicturePrompt)),
+        (await this._mediaService.generateImage(prompt, org, isPicturePrompt, user.id)),
     };
   }
 
   @Post('/generate-image-with-prompt')
   async generateImageFromText(
     @GetOrgFromRequest() org: Organization,
-    @Req() req: Request,
+    @GetUserFromRequest() user: User,
     @Body('prompt') prompt: string
   ) {
-    const image = await this.generateImage(org, req, prompt, true);
+    const image = await this.generateImage(org, user, prompt, true);
     if (!image) {
       return false;
     }

@@ -222,9 +222,10 @@ export class PostsController {
 
   @Post('/separate-posts')
   async separatePosts(
+    @GetUserFromRequest() user: User,
     @GetOrgFromRequest() org: Organization,
     @Body() body: { content: string; len: number }
   ) {
-    return this._postsService.separatePosts(body.content, body.len);
+    return this._postsService.separatePosts(user.id, body.content, body.len);
   }
 }
