@@ -23,6 +23,7 @@ export const TagsComponent: FC<{
   name: string;
   label: string;
   initial: any[];
+  iconOnly?: boolean;
   onChange: (event: {
     target: {
       value: any[];
@@ -51,13 +52,14 @@ export const TagsComponentInner: FC<{
   initial: any[];
   allTags: any;
   mutate: () => Promise<any>;
+  iconOnly?: boolean;
   onChange: (event: {
     target: {
       value: any[];
       name: string;
     };
   }) => void;
-}> = ({ initial, onChange, name, mutate, allTags: data }) => {
+}> = ({ initial, onChange, name, mutate, allTags: data, iconOnly }) => {
   const t = useT();
   const fetch = useFetch();
   const [isOpen, setIsOpen] = useState(false);
@@ -167,31 +169,43 @@ export const TagsComponentInner: FC<{
     >
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="px-[16px] justify-center flex gap-[8px] items-center h-full select-none flex-1"
+        className={clsx(
+          'justify-center flex gap-[8px] items-center h-full select-none flex-1',
+          iconOnly ? 'px-[10px]' : 'px-[16px]'
+        )}
       >
         <div className="cursor-pointer">
           <TagIcon />
         </div>
-        <div className="cursor-pointer flex gap-[4px]">
-          {tagValue.length === 0 ? (
-            t('add_new_tag', 'Add New Tag')
-          ) : (
-            <>
-              <div
-                className="h-full flex justify-center items-center px-[8px] rounded-[4px]"
-                style={{ backgroundColor: tagValue[0].color }}
-              >
-                <span className="text-shadow-tags text-[#fff]">
-                  {tagValue[0].name}
-                </span>
-              </div>
-              {tagValue.length > 1 ? <span>+{tagValue.length - 1}</span> : null}
-            </>
-          )}
-        </div>
-        <div className="cursor-pointer">
-          <DropdownArrowIcon rotated={isOpen} />
-        </div>
+        {!iconOnly && (
+          <>
+            <div className="cursor-pointer flex gap-[4px]">
+              {tagValue.length === 0 ? (
+                t('add_new_tag', 'Add New Tag')
+              ) : (
+                <>
+                  <div
+                    className="h-full flex justify-center items-center px-[8px] rounded-[4px]"
+                    style={{ backgroundColor: tagValue[0].color }}
+                  >
+                    <span className="text-shadow-tags text-[#fff]">
+                      {tagValue[0].name}
+                    </span>
+                  </div>
+                  {tagValue.length > 1 ? <span>+{tagValue.length - 1}</span> : null}
+                </>
+              )}
+            </div>
+            <div className="cursor-pointer">
+              <DropdownArrowIcon rotated={isOpen} />
+            </div>
+          </>
+        )}
+        {iconOnly && tagValue.length > 0 && (
+          <span className="text-[10px] font-[600] text-primary leading-none">
+            {tagValue.length}
+          </span>
+        )}
       </div>
       {isOpen && (
         <div className="z-[300] absolute start-0 bottom-[100%] w-[240px] bg-newBgColorInner p-[12px] menu-shadow -translate-y-[10px] flex flex-col">
