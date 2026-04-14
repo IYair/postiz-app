@@ -3,11 +3,12 @@
 import { useCalendar } from '@gitroom/frontend/components/launches/calendar.context';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
 
 // Helper function to get start and end dates based on display type
 function getDateRange(
@@ -43,6 +44,19 @@ function getDateRange(
 export const Filters = () => {
   const calendar = useCalendar();
   const t = useT();
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (isMobile && calendar.display === 'week') {
+      const range = getDateRange('day');
+      calendar.setFilters({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        display: 'day',
+        customer: calendar.customer,
+      });
+    }
+  }, [isMobile, calendar.display]);
 
   // Set dayjs locale based on current language
   const currentLanguage = i18next.resolvedLanguage || 'en';
@@ -272,9 +286,9 @@ export const Filters = () => {
   }, [calendar]);
 
   return (
-    <div className="text-textColor flex flex-col md:flex-row gap-[8px] items-center select-none">
+    <div className="text-textColor flex flex-col md:flex-row gap-[8px] md:items-center select-none">
       {!isListView && (
-        <div className="flex flex-grow flex-row items-center gap-[10px]">
+        <div className="flex flex-grow flex-row items-center gap-[10px] w-full md:w-auto">
           <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden">
             <div
               onClick={previous}
@@ -296,7 +310,7 @@ export const Filters = () => {
                 />
               </svg>
             </div>
-            <div className="min-w-[200px] text-center bg-newBgColorInner h-full flex items-center justify-center">
+            <div className="min-w-[140px] md:min-w-[200px] flex-1 md:flex-none text-center bg-newBgColorInner h-full flex items-center justify-center">
               <div className="py-[3px] px-[9px] rounded-[5px] transition-all text-[14px]">
                 {getDisplayText()}
               </div>
@@ -335,7 +349,7 @@ export const Filters = () => {
         </div>
       )}
       {isListView && (
-        <div className="flex flex-grow flex-row items-center gap-[10px]">
+        <div className="flex flex-grow flex-row items-center gap-[10px] w-full md:w-auto">
           <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden">
             <div
               onClick={previousPage}
@@ -362,7 +376,7 @@ export const Filters = () => {
                 />
               </svg>
             </div>
-            <div className="min-w-[200px] text-center bg-newBgColorInner h-full flex items-center justify-center">
+            <div className="min-w-[140px] md:min-w-[200px] flex-1 md:flex-none text-center bg-newBgColorInner h-full flex items-center justify-center">
               <div className="py-[3px] px-[9px] rounded-[5px] transition-all text-[14px]">
                 {t('page', 'Page')} {calendar.listPage + 1} {t('of', 'of')} {Math.max(1, calendar.listTotalPages)}
               </div>
@@ -402,10 +416,10 @@ export const Filters = () => {
         integrations={calendar.integrations}
       />
       {!isListView && (
-        <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]">
+        <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] w-full md:w-auto">
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer w-[74px] text-center rounded-[6px]',
+              'pt-[6px] pb-[5px] cursor-pointer flex-1 md:w-[74px] text-center rounded-[6px] whitespace-nowrap',
               calendar.display === 'day' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setDay}
@@ -414,7 +428,7 @@ export const Filters = () => {
           </div>
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer w-[74px] text-center rounded-[6px]',
+              'pt-[6px] pb-[5px] cursor-pointer flex-1 md:w-[74px] text-center rounded-[6px] whitespace-nowrap hidden md:block',
               calendar.display === 'week' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setWeek}
@@ -423,7 +437,7 @@ export const Filters = () => {
           </div>
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer w-[74px] text-center rounded-[6px]',
+              'pt-[6px] pb-[5px] cursor-pointer flex-1 md:w-[74px] text-center rounded-[6px] whitespace-nowrap',
               calendar.display === 'month' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setMonth}
@@ -432,7 +446,7 @@ export const Filters = () => {
           </div>
         </div>
       )}
-      <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]">
+      <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] self-start md:self-auto">
         <div
           onClick={setCalendarView}
           className={clsx(
