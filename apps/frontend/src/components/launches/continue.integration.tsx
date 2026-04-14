@@ -313,8 +313,8 @@ export const ContinueIntegration: FC<{
         </div>
 
         {/* Content */}
-        <div className="relative z-10 w-full max-w-[550px] mx-auto px-[20px]">
-          <div className="bg-[#1A1919] rounded-[16px] p-[32px] flex flex-col gap-[24px]">
+        <div className="relative z-10 w-full max-w-[550px] mx-auto px-[16px] lg:px-[20px]">
+          <div className="bg-[#1A1919] rounded-[16px] p-[16px] lg:p-[32px] flex flex-col gap-[24px]">
             <div className="flex flex-col gap-[8px] text-center">
               <h1 className="text-[24px] font-semibold">
                 {t('configure_your_channel', 'Configure Your Channel')}

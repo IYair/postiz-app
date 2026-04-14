@@ -106,7 +106,7 @@ export const TelegramProvider: FC<Web3ProviderInterface> = (props) => {
               'please_add_the_following_command_in_your_chat',
               'Please add the following command in your chat:'
             )}
-            <div className="mt-[16px] flex">
+            <div className="mt-[16px] flex gap-[8px]">
               <div className="flex-1">
                 <Input
                   label=""
@@ -115,7 +115,7 @@ export const TelegramProvider: FC<Web3ProviderInterface> = (props) => {
                   disableForm={true}
                 />
               </div>
-              <Button>{t('copy', 'Copy')}</Button>
+              <Button className="min-h-[44px] shrink-0">{t('copy', 'Copy')}</Button>
             </div>
           </div>
         )}
