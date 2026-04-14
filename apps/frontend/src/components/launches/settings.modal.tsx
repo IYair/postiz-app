@@ -75,7 +75,7 @@ export const SettingsModal: FC<{
       </div>
 
       <div className="my-[16px] flex gap-[10px]">
-        <Button onClick={save}>{t('save', 'Save')}</Button>
+        <Button className="w-full lg:w-auto" onClick={save}>{t('save', 'Save')}</Button>
       </div>
     </div>
   );

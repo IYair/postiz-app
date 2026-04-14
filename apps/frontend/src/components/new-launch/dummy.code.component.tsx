@@ -42,7 +42,7 @@ export const DummyCodeComponent: FC<{ code: any }> = ({ code }) => {
           ></path>
         </svg>
       </button>
-      <pre>{JSON.stringify(code, null, 2)}</pre>
+      <pre className="overflow-x-auto whitespace-pre text-[11px] lg:text-[13px]">{JSON.stringify(code, null, 2)}</pre>
     </div>
   );
 };

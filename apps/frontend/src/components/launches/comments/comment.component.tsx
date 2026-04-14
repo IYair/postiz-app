@@ -35,7 +35,7 @@ export const CommentBox: FC<{
     <div
       className={clsx(
         'flex',
-        type === 'textarea' ? 'flex-col' : 'flex-row flex items-end gap-[10px]'
+        type === 'textarea' ? 'flex-col' : 'flex-col lg:flex-row flex items-end gap-[10px]'
       )}
     >
       <div className={clsx(type === 'input' && 'flex-1')}>
@@ -51,7 +51,7 @@ export const CommentBox: FC<{
       <Button
         disabled={newComment.length < 2}
         onClick={changeIt}
-        className={clsx(type === 'input' && 'mb-[27px]')}
+        className={clsx(type === 'input' && 'lg:mb-[27px]')}
       >
         {value ? 'Update' : 'Add comment'}
       </Button>
@@ -266,7 +266,7 @@ export const CommentComponent: FC<{
     );
   }, []);
   return (
-    <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] border border-customColor6 bg-sixth p-[16px] pt-0">
+    <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] border border-customColor6 bg-sixth p-[12px] lg:p-[16px] pt-0">
       <TopTitle title={`Comments for ${date.format('DD/MM/YYYY HH:mm')}`} />
       <button
         onClick={closeAll}

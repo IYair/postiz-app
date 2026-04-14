@@ -121,7 +121,7 @@ export const GeneralPreviewComponent: FC<{
                   className={clsx(
                     'w-full rounded-[16px] overflow-hidden mt-[12px]',
                     value?.images?.length > 3
-                      ? 'grid grid-cols-2 gap-[4px]'
+                      ? 'grid grid-cols-1 sm:grid-cols-2 gap-[4px]'
                       : 'flex gap-[4px]'
                   )}
                 >

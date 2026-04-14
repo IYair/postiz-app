@@ -74,9 +74,9 @@ export const Modal: FC<{
         className="flex flex-col gap-[10px]"
       >
         <FormProvider {...form}>
-          <div className="text-textColor fixed start-0 top-0 bg-primary/80 z-[300] w-full h-full p-[60px] animate-fade justify-center flex bg-black/50">
-            <div>
-              <div className="flex gap-[10px] flex-col w-[500px] h-auto bg-sixth border-tableBorder border-2 rounded-xl pb-[20px] px-[20px] relative">
+          <div className="text-textColor fixed start-0 top-0 bg-primary/80 z-[300] w-full h-full p-[16px] lg:p-[60px] animate-fade justify-center flex bg-black/50 items-start lg:items-center overflow-y-auto">
+            <div className="w-full max-w-[500px]">
+              <div className="flex gap-[10px] flex-col w-full h-auto bg-sixth border-tableBorder border-2 rounded-xl pb-[20px] px-[20px] relative">
                 <div className="flex">
                   <div className="flex-1">
                     <TopTitle title={'Video Type'}>
@@ -108,8 +108,8 @@ export const Modal: FC<{
                 </div>
                 <div className="relative h-[400px]">
                   <div className="absolute left-0 top-0 w-full h-full overflow-hidden overflow-y-auto">
-                    <div className="mt-[10px] flex w-full justify-center items-center gap-[10px]">
-                      <div className="flex-1 flex">
+                    <div className="mt-[10px] flex flex-col lg:flex-row w-full justify-center items-center gap-[10px]">
+                      <div className="flex-1 flex w-full">
                         <Button
                           className="!flex-1"
                           onClick={() => setPosition('vertical')}
@@ -118,7 +118,7 @@ export const Modal: FC<{
                           Vertical (Stories, Reels)
                         </Button>
                       </div>
-                      <div className="flex-1 flex mt-[10px]">
+                      <div className="flex-1 flex w-full">
                         <Button
                           className="!flex-1"
                           onClick={() => setPosition('horizontal')}

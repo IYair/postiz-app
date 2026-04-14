@@ -156,29 +156,31 @@ export const StatisticsModal: FC<{
                 {t('no_short_link_results', 'No short link results')}
               </div>
             ) : (
-              <div className="grid grid-cols-3">
-                <div className="bg-forth p-[4px] rounded-tl-lg">
+              <div className="overflow-x-auto w-full">
+                <div className="grid grid-cols-3 min-w-[400px]">
+                <div className="bg-forth p-[4px] rounded-tl-lg truncate min-w-0">
                   {t('short_link', 'Short Link')}
                 </div>
-                <div className="bg-forth p-[4px]">
+                <div className="bg-forth p-[4px] truncate min-w-0">
                   {t('original_link', 'Original Link')}
                 </div>
-                <div className="bg-forth p-[4px] rounded-tr-lg">
+                <div className="bg-forth p-[4px] rounded-tr-lg truncate min-w-0">
                   {t('clicks', 'Clicks')}
                 </div>
                 {statisticsData?.clicks?.map((p: any) => (
                   <Fragment key={p.short}>
-                    <div className="p-[4px] py-[10px] bg-customColor6">
+                    <div className="p-[4px] py-[10px] bg-customColor6 truncate min-w-0">
                       {p.short}
                     </div>
-                    <div className="p-[4px] py-[10px] bg-customColor6">
+                    <div className="p-[4px] py-[10px] bg-customColor6 truncate min-w-0">
                       {p.original}
                     </div>
-                    <div className="p-[4px] py-[10px] bg-customColor6">
+                    <div className="p-[4px] py-[10px] bg-customColor6 truncate min-w-0">
                       {p.clicks}
                     </div>
                   </Fragment>
                 ))}
+              </div>
               </div>
             )}
           </div>

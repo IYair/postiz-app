@@ -350,7 +350,7 @@ export const MediaBox: FC<{
         title: '',
         top: 10,
         children: (
-          <div className="w-full h-full p-[50px]">
+          <div className="w-full h-full p-[16px] lg:p-[50px]">
             {media.path.indexOf('mp4') > -1 ? (
               <VideoFrame
                 autoplay={true}
@@ -440,7 +440,7 @@ export const MediaBox: FC<{
             className="hidden"
             multiple={true}
           />
-          <div className="flex gap-[8px]">
+          <div className="flex flex-wrap gap-[8px]">
             {btn}
             <ThirdPartyMediaLibrary onImported={() => mutate()} />
           </div>
@@ -604,10 +604,10 @@ export const MediaBox: FC<{
           />
         )}
         {!standalone && (
-          <div className="flex justify-end mt-[32px] gap-[8px]">
+          <div className="flex flex-col lg:flex-row justify-end mt-[32px] gap-[8px]">
             <button
               onClick={() => modals.closeCurrent()}
-              className="cursor-pointer h-[52px] px-[20px] items-center justify-center border border-newTextColor/10 flex rounded-[10px]"
+              className="cursor-pointer h-[52px] px-[20px] items-center justify-center border border-newTextColor/10 flex rounded-[10px] w-full lg:w-auto"
             >
               {t('cancel', 'Cancel')}
             </button>
@@ -615,7 +615,7 @@ export const MediaBox: FC<{
               <button
                 onClick={standalone ? () => {} : addMedia}
                 disabled={selected.length === 0}
-                className="cursor-pointer text-white disabled:opacity-80 disabled:cursor-not-allowed h-[52px] px-[20px] items-center justify-center bg-[#612BD3] flex rounded-[10px]"
+                className="cursor-pointer text-white disabled:opacity-80 disabled:cursor-not-allowed h-[52px] px-[20px] items-center justify-center bg-[#612BD3] flex rounded-[10px] w-full lg:w-auto"
               >
                 {t('add_selected_media', 'Add selected media')}
               </button>

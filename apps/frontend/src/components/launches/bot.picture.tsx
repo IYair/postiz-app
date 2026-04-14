@@ -72,13 +72,13 @@ export const BotPicture: FC<{
       <div className="mt-[16px]">
         <form onSubmit={submitForm} className="gap-[50px] flex flex-col">
           {props.canChangeProfilePicture && (
-            <div className="flex items-center gap-[20px]">
+            <div className="flex flex-col lg:flex-row items-center gap-[20px]">
               <img
                 src={picture}
                 alt="Bot Picture"
                 className="w-[100px] h-[100px] rounded-full"
               />
-              <Button type="button" onClick={openMedia}>
+              <Button type="button" className="w-full lg:w-auto" onClick={openMedia}>
                 {t('upload', 'Upload')}
               </Button>
             </div>
@@ -95,7 +95,7 @@ export const BotPicture: FC<{
           )}
 
           <div className="mt-[50px]">
-            <Button type="submit">{t('save', 'Save')}</Button>
+            <Button type="submit" className="w-full lg:w-auto">{t('save', 'Save')}</Button>
           </div>
         </form>
       </div>

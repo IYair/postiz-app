@@ -4,11 +4,18 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import Link from 'next/link';
 
-export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClick?: () => void }> = ({
+export const MenuItem: FC<{
+  label: string;
+  icon: ReactNode;
+  path: string;
+  onClick?: () => void;
+  onNavigate?: () => void;
+}> = ({
   label,
   icon,
   path,
   onClick,
+  onNavigate,
 }) => {
   const currentPath = usePathname();
   const isActive = currentPath.indexOf(path) === 0;
@@ -20,7 +27,13 @@ export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClic
 
   if (onClick) {
     return (
-      <button onClick={onClick} className={className}>
+      <button
+        onClick={() => {
+          onClick();
+          onNavigate?.();
+        }}
+        className={className}
+      >
         <div className="custom:hidden">{icon}</div>
         <div className="text-[10px]">{label}</div>
       </button>
@@ -33,6 +46,7 @@ export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClic
       href={path}
       {...path.indexOf('http') === 0 && { target: '_blank' }}
       className={className}
+      onClick={onNavigate}
     >
       <div className="custom:hidden">{icon}</div>
       <div className="text-[10px]">{label}</div>

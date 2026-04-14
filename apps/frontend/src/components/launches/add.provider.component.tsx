@@ -262,10 +262,10 @@ const ExtensionNotFound: FC = () => {
           'The Postiz browser extension is not installed. You need to install it before connecting this channel.'
         )}
       </p>
-      <div className="flex gap-[10px]">
+      <div className="flex flex-col lg:flex-row gap-[10px]">
         <Button
           type="button"
-          className="flex-1"
+          className="flex-1 w-full lg:w-auto"
           onClick={() => {
             window.open(
               'https://chromewebstore.google.com/detail/postiz/cidhffagahknaeodkplfbcpfeielnkjl?hl=en',
@@ -278,7 +278,7 @@ const ExtensionNotFound: FC = () => {
         </Button>
         <Button
           type="button"
-          className="flex-1 !bg-transparent border border-tableBorder text-textColor"
+          className="flex-1 w-full lg:w-auto !bg-transparent border border-tableBorder text-textColor"
           onClick={() => modals.closeCurrent()}
         >
           {t('cancel', 'Cancel')}
@@ -328,10 +328,10 @@ const ChromeExtensionWarning: FC<{
           Postiz does not take responsibility for any issues arising or account termination due to the use of this method.
         </li>
       </ul>
-      <div className="flex gap-[10px] mt-[8px]">
+      <div className="flex flex-col lg:flex-row gap-[10px] mt-[8px]">
         <Button
           type="button"
-          className="flex-1"
+          className="flex-1 w-full lg:w-auto"
           onClick={() => {
             modals.closeCurrent();
             onConfirm();
@@ -341,7 +341,7 @@ const ChromeExtensionWarning: FC<{
         </Button>
         <Button
           type="button"
-          className="flex-1 !bg-transparent border border-tableBorder text-textColor"
+          className="flex-1 w-full lg:w-auto !bg-transparent border border-tableBorder text-textColor"
           onClick={() => {
             modals.closeCurrent();
             onCancel();
@@ -614,8 +614,10 @@ export const AddProviderComponent: FC<{
       <div className="flex flex-col">
         <div
           className={clsx(
-            'grid grid-cols-5 gap-[10px] justify-items-center justify-center',
-            onboarding ? 'grid-cols-9' : 'grid-cols-5'
+            'grid gap-[10px] justify-items-center justify-center',
+            onboarding
+              ? 'grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9'
+              : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
           )}
         >
           {social

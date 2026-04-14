@@ -143,7 +143,7 @@ export const MoltbookProvider: FC<Web3ProviderInterface> = (props) => {
                 readOnly
               />
             </div>
-            <Button onClick={copyClaimUrl}>{t('copy', 'Copy')}</Button>
+            <Button className="min-h-[44px] shrink-0" onClick={copyClaimUrl}>{t('copy', 'Copy')}</Button>
           </div>
           <div className="mt-[16px] text-sm opacity-70">
             {t('waiting_for_claim', 'Waiting for you to claim your agent...')}

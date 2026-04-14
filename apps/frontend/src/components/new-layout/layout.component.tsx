@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useCallback } from 'react';
+import React, { ReactNode, useCallback, useState, useEffect } from 'react';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 const ModeComponent = dynamic(
@@ -41,6 +41,7 @@ import { StreakComponent } from '@gitroom/frontend/components/layout/streak.comp
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
 import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
 
 const jakartaSans = Plus_Jakarta_Sans({
   weight: ['600', '500', '700'],
@@ -65,6 +66,18 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     refreshWhenOffline: false,
     refreshWhenHidden: false,
   });
+
+  const isMobile = useIsMobile();
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (!(isMobile && navOpen)) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNavOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isMobile, navOpen]);
 
   if (!user) return null;
 
@@ -98,13 +111,77 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
               ) : (
                 <>
                   <AnnouncementBanner />
-                  <div className="flex-1 flex gap-[8px]">
+                  <div className="flex-1 flex gap-[8px] lg:gap-[8px]">
                     <Support />
-                    <div className="flex flex-col bg-newBgColorInner w-[80px] rounded-[12px]">
+
+                    {/* Mobile drawer — visible only below lg */}
+                    <div
+                      className={clsx(
+                        'lg:hidden',
+                        !navOpen && 'pointer-events-none'
+                      )}
+                    >
+                      {/* Backdrop */}
                       <div
-                        id="left-menu"
                         className={clsx(
-                          'fixed h-full w-[64px] start-[17px] flex flex-1 top-0',
+                          'fixed inset-0 bg-black/60 z-[9998] transition-opacity duration-300 ease-linear',
+                          navOpen ? 'opacity-100' : 'opacity-0'
+                        )}
+                        onClick={() => setNavOpen(false)}
+                        aria-hidden="true"
+                      />
+
+                      {/* Drawer row: panel + floating close button */}
+                      <div className="fixed inset-y-0 start-0 z-[9999] flex">
+                        {/* Panel */}
+                        <div
+                          id="app-nav-drawer"
+                          role="dialog"
+                          aria-modal={navOpen}
+                          aria-label="Navigation"
+                          aria-hidden={!navOpen}
+                          className={clsx(
+                            'relative w-[280px] max-w-[80vw] bg-newBgColorInner flex flex-col ring-1 ring-white/10 transition-transform duration-300 ease-in-out',
+                            navOpen
+                              ? 'translate-x-0'
+                              : '-translate-x-full rtl:translate-x-full'
+                          )}
+                        >
+                          <div className="flex flex-col h-full gap-[32px] flex-1 py-[12px] px-[12px] overflow-y-auto">
+                            <Logo />
+                            <TopMenu onNavigate={() => setNavOpen(false)} />
+                          </div>
+                        </div>
+
+                        {/* Close button — floats outside the panel */}
+                        <div
+                          className={clsx(
+                            'flex w-[64px] justify-center pt-[20px] transition-opacity duration-300 ease-in-out',
+                            navOpen
+                              ? 'opacity-100'
+                              : 'opacity-0 pointer-events-none'
+                          )}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setNavOpen(false)}
+                            className="w-[40px] h-[40px] flex items-center justify-center text-white text-[22px] leading-none"
+                            aria-label="Close navigation"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Desktop rail — visible only at lg+ */}
+                    <div
+                      id="left-menu"
+                      className="hidden lg:flex lg:flex-col bg-newBgColorInner rounded-[12px] lg:w-[80px]"
+                    >
+                      <div
+                        className={clsx(
+                          'lg:fixed lg:h-full lg:w-[64px] lg:start-[17px] lg:flex lg:flex-1 lg:top-0',
                           user?.admin && 'pt-[60px] max-h-[1000px]:w-[500px]'
                         )}
                       >
@@ -114,22 +191,41 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex-1 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
-                      <div className="flex bg-newBgColorInner h-[80px] px-[20px] items-center">
-                        <div className="text-[24px] font-[600] flex flex-1">
+
+                    {/* Main content area */}
+                    <div className="flex-1 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe min-w-0">
+                      {/* Top bar (sticky) */}
+                      <div className="sticky top-0 z-40 flex bg-newBgColorInner h-[56px] lg:h-[80px] px-[12px] lg:px-[20px] items-center gap-[8px] lg:gap-[20px]">
+                        {/* Hamburger — visible below lg */}
+                        <button
+                          onClick={() => setNavOpen(true)}
+                          className="lg:hidden w-[40px] h-[40px] flex items-center justify-center rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[20px] leading-none text-textItemBlur hover:text-newTextColor shrink-0"
+                          aria-label="Open navigation"
+                          aria-expanded={navOpen}
+                          aria-controls="app-nav-drawer"
+                        >
+                          ☰
+                        </button>
+
+                        {/* Title */}
+                        <div className="text-[18px] lg:text-[24px] font-[600] flex flex-1 min-w-0 truncate">
                           <Title />
                         </div>
-                        <div className="flex gap-[20px] text-textItemBlur">
-                          <StreakComponent />
-                          <div className="w-[1px] h-[20px] bg-blockSeparator" />
-                          <OrganizationSelector />
-                          <div className="hover:text-newTextColor">
-                            <ModeComponent />
+
+                        {/* Top bar icons */}
+                        <div className="flex gap-[8px] lg:gap-[20px] text-textItemBlur items-center">
+                          <div className="hidden lg:flex items-center gap-[20px]">
+                            <StreakComponent />
+                            <div className="w-[1px] h-[20px] bg-blockSeparator" />
+                            <OrganizationSelector />
+                            <div className="hover:text-newTextColor">
+                              <ModeComponent />
+                            </div>
+                            <div className="w-[1px] h-[20px] bg-blockSeparator" />
                           </div>
-                          <div className="w-[1px] h-[20px] bg-blockSeparator" />
                           <LanguageComponent />
                           <ChromeExtensionComponent />
-                          <div className="w-[1px] h-[20px] bg-blockSeparator" />
+                          <div className="hidden lg:block w-[1px] h-[20px] bg-blockSeparator" />
                           <AttachToFeedbackIcon />
                           <NotificationComponent />
                         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { AddProviderButton } from '@gitroom/frontend/components/launches/add.provider.component';
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { capitalize, groupBy, orderBy } from 'lodash';
 import { CalendarWeekProvider } from '@gitroom/frontend/components/launches/calendar.context';
@@ -26,6 +26,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
 import useCookie from 'react-use-cookie';
 import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
 
 export const SVGLine = () => {
   return (
@@ -83,6 +84,8 @@ interface MenuComponentInterface {
   totalNonDisabledChannels: number;
   mutate: (shouldReload?: boolean) => void;
   update: (shouldReload: boolean) => void;
+  onItemClick?: () => void;
+  isMobile: boolean;
 }
 export const OpenClose: FC<{
   isOpen: boolean;
@@ -132,6 +135,8 @@ export const MenuGroupComponent: FC<
     refreshChannel,
     changeItemGroup,
     collapsed,
+    onItemClick,
+    isMobile,
   } = props;
   const [isOpen, setIsOpen] = useState(
     !!+(localStorage.getItem(group.name + '_isOpen') || '1')
@@ -208,6 +213,8 @@ export const MenuGroupComponent: FC<
             update={update}
             refreshChannel={refreshChannel}
             totalNonDisabledChannels={totalNonDisabledChannels}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
           />
         ))}
       </div>
@@ -232,6 +239,8 @@ export const MenuComponent: FC<
     update,
     integration,
     collapsed,
+    onItemClick,
+    isMobile,
   } = props;
   const user = useUser();
   const t = useT();
@@ -240,19 +249,28 @@ export const MenuComponent: FC<
     item: {
       id: integration.id,
     },
-  }));
+    canDrag: () => !isMobile,
+  }), [isMobile]);
+  const handleRootClick = () => {
+    if (integration.refreshNeeded) {
+      refreshChannel(integration)();
+    }
+    onItemClick?.();
+  };
   return (
     <div
       // @ts-ignore
       ref={dragPreview}
-      {...(integration.refreshNeeded && {
-        onClick: refreshChannel(integration),
-        'data-tooltip-id': 'tooltip',
-        'data-tooltip-content': t(
-          'channel_disconnected_click_to_reconnect',
-          'Channel disconnected, click to reconnect.'
-        ),
-      })}
+      onClick={handleRootClick}
+      {...(integration.refreshNeeded
+        ? {
+            'data-tooltip-id': 'tooltip',
+            'data-tooltip-content': t(
+              'channel_disconnected_click_to_reconnect',
+              'Channel disconnected, click to reconnect.'
+            ),
+          }
+        : {})}
       {...(collapsed
         ? {
             'data-tooltip-id': 'tooltip',
@@ -276,11 +294,11 @@ export const MenuComponent: FC<
         {(integration.inBetweenSteps || integration.refreshNeeded) && (
           <div
             className="absolute start-0 top-0 w-[39px] h-[46px] cursor-pointer"
-            onClick={
-              integration.refreshNeeded
-                ? refreshChannel(integration)
-                : continueIntegration(integration)
-            }
+            onClick={(e) => {
+              e.stopPropagation();
+              if (integration.refreshNeeded) refreshChannel(integration)();
+              else continueIntegration(integration)();
+            }}
           >
             <div className="bg-red-500 w-[15px] h-[15px] rounded-full start-[5px] top-[5px] absolute z-[200] text-[10px] flex justify-center items-center">
               !
@@ -362,6 +380,9 @@ export const LaunchesComponent = () => {
   const [collapseMenu, setCollapseMenu] = useCookie('collapseMenu', '0');
   const [mode] = useCookie('mode', 'dark');
   const { isLoading, data: integrations, mutate } = useIntegrationList();
+  const isMobile = useIsMobile();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const hamburgerRef = useRef<HTMLButtonElement | null>(null);
 
   const totalNonDisabledChannels = useMemo(() => {
     return (
@@ -484,6 +505,15 @@ export const LaunchesComponent = () => {
       window.close();
     }
   }, []);
+  useEffect(() => {
+    if (!(isMobile && drawerOpen)) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isMobile, drawerOpen]);
+
   if (isLoading || reload) {
     return (
       <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] transition-all items-center justify-center">
@@ -492,109 +522,186 @@ export const LaunchesComponent = () => {
     );
   }
 
+  const sidebarInner = (
+    <div className="bg-newBgColorInner p-[20px] flex flex-col gap-[15px] h-full overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+      <div className="flex items-center">
+        <h2 className="group-[.sidebar]:hidden flex-1 text-[20px] font-[500]">
+          {t('channels')}
+        </h2>
+        <div
+          onClick={() =>
+            setCollapseMenu(collapseMenu === '1' ? '0' : '1')
+          }
+          className="hidden lg:flex group-[.sidebar]:rotate-[180deg] group-[.sidebar]:mx-auto text-btnText bg-btnSimple rounded-[6px] w-[24px] h-[24px] items-center justify-center cursor-pointer select-none"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="7"
+            height="13"
+            viewBox="0 0 7 13"
+            fill="none"
+          >
+            <path
+              d="M6 11.5L1 6.5L6 1.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      </div>
+      <div className="flex flex-col gap-[8px] group-[.sidebar]:mx-auto group-[.sidebar]:w-[44px]">
+        <AddProviderButton update={() => update(true)} />
+        <div className="flex gap-[8px] group-[.sidebar]:flex-col">
+          {sortedIntegrations?.length > 0 && <NewPost />}
+          {sortedIntegrations?.length > 0 &&
+            user?.tier?.ai &&
+            billingEnabled && <GeneratorComponent />}
+        </div>
+      </div>
+      <div className="gap-[32px] flex flex-col select-none flex-1">
+        {sortedIntegrations.length === 0 && collapseMenu === '0' && (
+          <div className="flex-1 max-h-[500px] justify-center items-center flex">
+            <div className="flex flex-col gap-[12px] text-center">
+              <img
+                src={
+                  mode === 'dark'
+                    ? '/no-channels.svg'
+                    : '/no-channels-colors.svg'
+                }
+                alt="No channels"
+                className="mx-auto min-w-[100%]"
+              />
+              <div className="font-[600] text-[20px]">
+                {t('no_channels', 'No channels yet')}
+              </div>
+              <div className="text-[14px]">
+                {t('connect_your_accounts')}
+              </div>
+            </div>
+          </div>
+        )}
+        {menuIntegrations.map((menu) => (
+          <MenuGroupComponent
+            collapsed={collapseMenu === '1'}
+            changeItemGroup={changeItemGroup}
+            key={menu.name}
+            group={menu}
+            mutate={mutate}
+            continueIntegration={continueIntegration}
+            update={update}
+            refreshChannel={refreshChannel}
+            totalNonDisabledChannels={totalNonDisabledChannels}
+            onItemClick={isMobile ? () => setDrawerOpen(false) : undefined}
+            isMobile={isMobile}
+          />
+        ))}
+      </div>
+      <div className="mt-[5px] text-center flex flex-col">
+        {billingEnabled && user?.isLifetime && (
+          <div>{capitalize(user?.tier?.current || '')} tier</div>
+        )}
+        <div>
+          {process.env.NEXT_PUBLIC_VERSION
+            ? process.env.NEXT_PUBLIC_VERSION
+            : ''}
+        </div>
+      </div>
+    </div>
+  );
+
   // @ts-ignore
   return (
     <DNDProvider>
       <Onboarding />
       <CalendarWeekProvider integrations={sortedIntegrations}>
+        {/* Mobile/tablet: right-side off-canvas drawer */}
         <div
           className={clsx(
-            'flex relative flex-col',
-            collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
+            'lg:hidden',
+            !drawerOpen && 'pointer-events-none'
           )}
         >
+          {/* Backdrop */}
           <div
             className={clsx(
-              'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all absolute start-0 top-0 w-full h-full overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor'
+              'fixed inset-0 bg-black/60 z-[9998] transition-opacity duration-500 ease-in-out',
+              drawerOpen ? 'opacity-100' : 'opacity-0'
             )}
-          >
-            <div className="flex items-center">
-              <h2 className="group-[.sidebar]:hidden flex-1 text-[20px] font-[500]">
-                {t('channels')}
-              </h2>
-              <div
-                onClick={() =>
-                  setCollapseMenu(collapseMenu === '1' ? '0' : '1')
-                }
-                className="group-[.sidebar]:rotate-[180deg] group-[.sidebar]:mx-auto text-btnText bg-btnSimple rounded-[6px] w-[24px] h-[24px] flex items-center justify-center cursor-pointer select-none"
+            onClick={() => setDrawerOpen(false)}
+            aria-hidden="true"
+          />
+          {/* Drawer row (anchored to end = right in LTR) */}
+          <div className="fixed inset-y-0 end-0 z-[9999] flex max-w-full ps-[40px]">
+            {/* Close button — floats outside panel */}
+            <div
+              className={clsx(
+                'flex items-start pt-[16px] pe-[4px] transition-opacity duration-500 ease-in-out',
+                drawerOpen
+                  ? 'opacity-100'
+                  : 'opacity-0 pointer-events-none'
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="w-[40px] h-[40px] flex items-center justify-center text-white text-[22px] leading-none"
+                aria-label="Close channels"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="7"
-                  height="13"
-                  viewBox="0 0 7 13"
-                  fill="none"
-                >
-                  <path
-                    d="M6 11.5L1 6.5L6 1.5"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
+                ✕
+              </button>
             </div>
-            <div className="flex flex-col gap-[8px] group-[.sidebar]:mx-auto group-[.sidebar]:w-[44px]">
-              <AddProviderButton update={() => update(true)} />
-              <div className="flex gap-[8px] group-[.sidebar]:flex-col">
-                {sortedIntegrations?.length > 0 && <NewPost />}
-                {sortedIntegrations?.length > 0 &&
-                  user?.tier?.ai &&
-                  billingEnabled && <GeneratorComponent />}
-              </div>
-            </div>
-            <div className="gap-[32px] flex flex-col select-none flex-1">
-              {sortedIntegrations.length === 0 && collapseMenu === '0' && (
-                <div className="flex-1 max-h-[500px] justify-center items-center flex">
-                  <div className="flex flex-col gap-[12px] text-center">
-                    <img
-                      src={
-                        mode === 'dark'
-                          ? '/no-channels.svg'
-                          : '/no-channels-colors.svg'
-                      }
-                      alt="No channels"
-                      className="mx-auto min-w-[100%]"
-                    />
-                    <div className="font-[600] text-[20px]">
-                      {t('no_channels', 'No channels yet')}
-                    </div>
-                    <div className="text-[14px]">
-                      {t('connect_your_accounts')}
-                    </div>
-                  </div>
-                </div>
+            {/* Panel (slides in from right) */}
+            <div
+              id="channels-drawer"
+              role="dialog"
+              aria-modal={drawerOpen}
+              aria-label="Channels"
+              aria-hidden={!drawerOpen}
+              className={clsx(
+                'w-screen max-w-[380px] bg-newBgColorInner flex flex-col ring-1 ring-white/10 transition-transform duration-500 ease-in-out',
+                drawerOpen
+                  ? 'translate-x-0'
+                  : 'translate-x-full rtl:-translate-x-full'
               )}
-              {menuIntegrations.map((menu) => (
-                <MenuGroupComponent
-                  collapsed={collapseMenu === '1'}
-                  changeItemGroup={changeItemGroup}
-                  key={menu.name}
-                  group={menu}
-                  mutate={mutate}
-                  continueIntegration={continueIntegration}
-                  update={update}
-                  refreshChannel={refreshChannel}
-                  totalNonDisabledChannels={totalNonDisabledChannels}
-                />
-              ))}
-            </div>
-            <div className="mt-[5px] text-center flex flex-col">
-              {billingEnabled && user?.isLifetime && (
-                <div>{capitalize(user?.tier?.current || '')} tier</div>
-              )}
-              <div>
-                {process.env.NEXT_PUBLIC_VERSION
-                  ? process.env.NEXT_PUBLIC_VERSION
-                  : ''}
-              </div>
+            >
+              {sidebarInner}
             </div>
           </div>
         </div>
-        <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
+
+        {/* Desktop (lg+): fixed sidebar as flex sibling */}
+        <div
+          id="channels-sidebar"
+          className={clsx(
+            'hidden lg:flex relative flex-col',
+            collapseMenu === '1' ? 'lg:group lg:sidebar lg:w-[100px]' : 'lg:w-[260px]'
+          )}
+        >
+          {sidebarInner}
+        </div>
+
+        {/* Main content */}
+        <div className="bg-newBgColorInner flex-1 flex-col flex p-[12px] lg:p-[20px] gap-[12px] min-w-0">
+          <div className="flex items-center justify-between gap-[8px] lg:hidden">
+            <div className="text-[16px] font-[500] text-textColor">
+              {t('channels')}
+            </div>
+            <button
+              ref={hamburgerRef}
+              onClick={() => setDrawerOpen(true)}
+              className="h-[36px] px-[12px] flex items-center gap-[6px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[14px] text-textColor"
+              aria-label="Open channels"
+              aria-expanded={drawerOpen}
+              aria-controls="channels-drawer"
+            >
+              <span>{t('channels')}</span>
+              <span className="text-[16px] leading-none">☰</span>
+            </button>
+          </div>
           <Filters />
-          <div className="flex-1 flex">
+          <div className="flex-1 flex min-w-0">
             <Calendar />
           </div>
         </div>

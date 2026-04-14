@@ -115,7 +115,7 @@ const Polonto: FC<{
         <PolotnoContainer
           style={{
             width: '100%',
-            height: '700px',
+            height: 'min(700px, calc(100dvh - 120px))',
           }}
         >
           <SidePanelWrap>

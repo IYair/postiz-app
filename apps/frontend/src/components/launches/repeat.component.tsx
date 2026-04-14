@@ -1,12 +1,14 @@
 'use client';
 
 import { FC, useMemo, useState } from 'react';
-import { Select } from '@gitroom/react/form/select';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useClickOutside } from '@mantine/hooks';
 import { isUSCitizen } from '@gitroom/frontend/components/launches/helpers/isuscitizen.utils';
 import clsx from 'clsx';
 import { RepeatIcon, DropdownArrowIcon } from '@gitroom/frontend/components/ui/icons';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
+import { BottomSheet } from '@gitroom/frontend/components/ui/bottom.sheet';
+
 const getList = (t: (key: string, fallback: string) => string) => [
   {
     value: 1,
@@ -49,17 +51,20 @@ const getList = (t: (key: string, fallback: string) => string) => [
     label: t('cancel', 'Cancel'),
   },
 ];
+
 export const RepeatComponent: FC<{
   repeat: number | null;
   onChange: (newVal: number) => void;
+  iconOnly?: boolean;
 }> = (props) => {
-  const { repeat } = props;
+  const { repeat, iconOnly } = props;
   const t = useT();
   const list = getList(t);
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const ref = useClickOutside(() => {
-    if (!isOpen) {
+    if (!isOpen || isMobile) {
       return;
     }
     setIsOpen(false);
@@ -72,9 +77,26 @@ export const RepeatComponent: FC<{
     return list.find((p) => p.value === repeat)?.label;
   }, [repeat, list]);
 
+  const dropdownItems = (
+    <>
+      {list.map((p) => (
+        <div
+          onClick={() => {
+            props.onChange(Number(p.value));
+            setIsOpen(false);
+          }}
+          key={p.label}
+          className="h-[48px] lg:h-[40px] py-[8px] px-[20px] flex items-center hover:bg-newBgColor cursor-pointer"
+        >
+          {p.label}
+        </div>
+      ))}
+    </>
+  );
+
   return (
     <div
-      ref={ref}
+      ref={isMobile ? undefined : ref}
       className={clsx(
         'border rounded-[8px] justify-center flex items-center relative h-[44px] text-[15px] font-[600] select-none',
         isOpen ? 'border-[#612BD3]' : 'border-newTextColor/10',
@@ -82,35 +104,49 @@ export const RepeatComponent: FC<{
     >
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="px-[16px] justify-center flex gap-[8px] items-center h-full select-none flex-1"
+        className={clsx(
+          'justify-center flex gap-[8px] items-center h-full select-none flex-1',
+          iconOnly ? 'px-[10px]' : 'px-[16px]'
+        )}
       >
         <div className="cursor-pointer">
           <RepeatIcon />
         </div>
-        <div className="cursor-pointer">
-          {repeat
-            ? `${t('repeat_post_every_label', 'Repeat Post Every')} ${everyLabel}`
-            : t('repeat_post_every', 'Repeat Post Every...')}
-        </div>
-        <div className="cursor-pointer">
-          <DropdownArrowIcon rotated={isOpen} />
-        </div>
-      </div>
-      {isOpen && (
-        <div className="z-[300] absolute start-0 bottom-[100%] w-[240px] bg-newBgColorInner p-[12px] menu-shadow -translate-y-[10px] flex flex-col">
-          {list.map((p) => (
-            <div
-              onClick={() => {
-                props.onChange(Number(p.value));
-                setIsOpen(false);
-              }}
-              key={p.label}
-              className="h-[40px] py-[8px] px-[20px] -mx-[12px] hover:bg-newBgColor"
-            >
-              {p.label}
+        {!iconOnly && (
+          <>
+            <div className="cursor-pointer">
+              {repeat
+                ? `${t('repeat_post_every_label', 'Repeat Post Every')} ${everyLabel}`
+                : t('repeat_post_every', 'Repeat Post Every...')}
             </div>
-          ))}
-        </div>
+            <div className="cursor-pointer">
+              <DropdownArrowIcon rotated={isOpen} />
+            </div>
+          </>
+        )}
+        {iconOnly && repeat && (
+          <span className="text-[10px] font-[600] text-primary leading-none">
+            {everyLabel?.[0]}
+          </span>
+        )}
+      </div>
+      {isMobile ? (
+        <BottomSheet
+          open={isOpen}
+          onClose={() => setIsOpen(false)}
+          label={t('repeat_post_every', 'Repeat Post Every...')}
+        >
+          <div className="pb-[16px]">{dropdownItems}</div>
+        </BottomSheet>
+      ) : (
+        isOpen && (
+          <div
+            ref={ref}
+            className="z-[300] absolute start-0 bottom-[100%] w-[240px] bg-newBgColorInner p-[12px] menu-shadow -translate-y-[10px] flex flex-col"
+          >
+            {dropdownItems}
+          </div>
+        )
       )}
     </div>
   );

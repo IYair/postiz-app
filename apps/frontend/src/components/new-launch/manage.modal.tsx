@@ -9,6 +9,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
 import { AddEditModalProps } from '@gitroom/frontend/components/new-launch/add.edit.modal';
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -62,6 +63,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const modal = useModals();
   const [showSettings, setShowSettings] = useState(false);
   const { data: shortlinkPreferenceData } = useShortlinkPreference();
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
 
   const { addEditSets, mutate, customClose, dummy } = props;
 
@@ -443,11 +446,36 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   );
 
   return (
-    <div className="w-full h-full flex-1 p-[40px] flex relative">
-      <div className="flex flex-1 bg-newBgColorInner rounded-[20px] flex-col">
-        <div className="flex-1 flex">
-          <div className="flex flex-col flex-1 border-e border-newBorder">
-            <div className="bg-newBgColor h-[65px] rounded-s-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
+    <div className="w-full h-full flex-1 lg:p-[40px] flex relative">
+      <div className="flex flex-1 bg-newBgColorInner lg:rounded-[20px] flex-col min-h-0">
+        {isMobile && (
+          <div className="sticky top-0 z-20 flex items-center bg-newBgColorInner border-b border-newTableBorder">
+            {(['edit', 'preview'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setMobileTab(tab)}
+                className={clsx(
+                  'flex-1 h-[44px] text-[14px] font-[500] transition-colors',
+                  mobileTab === tab
+                    ? 'text-white font-[600] border-b-2 border-primary'
+                    : 'text-textColor/60 border-b-2 border-transparent'
+                )}
+              >
+                {tab === 'edit' ? t('edit', 'Editar') : t('preview', 'Vista previa')}
+              </button>
+            ))}
+            <button
+              onClick={askClose}
+              className="shrink-0 w-[44px] h-[44px] flex items-center justify-center text-[18px] text-textColor hover:text-white"
+              aria-label={t('close', 'Close')}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+          <div className={clsx('flex flex-col flex-1 min-w-0 min-h-0 lg:border-e border-newBorder', isMobile && mobileTab !== 'edit' && 'hidden')}>
+            <div className="bg-newBgColor h-[65px] lg:rounded-s-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
               {t('create_post_title', 'Create Post')}
             </div>
             <div className="flex-1 flex flex-col gap-[16px]">
@@ -473,7 +501,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   </div>
                   <div className="flex flex-1 gap-[6px] flex-col">
                     <div>{!existingData.integration && <SelectCurrent />}</div>
-                    <div className="flex-1 flex">
+                    <div className="flex-1 flex min-w-0">
                       {!hide && <EditorWrapper totalPosts={1} value="" />}
                     </div>
                     <div
@@ -532,14 +560,15 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               </div>
             </div>
           </div>
-          <div className="w-[580px] flex flex-col">
-            <div className="bg-newBgColor h-[65px] rounded-e-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
+          <div className={clsx('w-full lg:w-[580px] flex flex-col min-h-0', isMobile && mobileTab !== 'preview' && 'hidden', !isMobile || mobileTab === 'preview' ? 'flex-1' : '')}>
+            <div className="bg-newBgColor h-[65px] lg:rounded-e-[20px] !rounded-b-[0] flex items-center px-[20px] text-[20px] font-[600]">
               <div className="flex-1">{t('post_preview', 'Post Preview')}</div>
-              <div className="cursor-pointer">
+              {/* Close button: visible on desktop; hidden on mobile (tab bar has its own ✕) */}
+              <div className="hidden lg:block cursor-pointer">
                 <CloseIcon onClick={askClose} className="text-[#A3A3A3]" />
               </div>
             </div>
-            <div className="flex-1 relative">
+            <div className="flex-1 min-h-0 relative">
               <Scrollable
                 scrollClasses="!pe-[20px]"
                 className="absolute top-0 p-[20px] pe-[8px] left-0 w-full h-full overflow-x-hidden overflow-y-scroll scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner"
@@ -549,28 +578,67 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           </div>
         </div>
-        <div className="select-none h-[84px] py-[20px] border-t border-newBorder flex items-center">
-          <div className="flex-1 flex ps-[20px] gap-[8px]">
+        <div className="select-none border-t border-newBorder flex flex-col lg:flex-row lg:items-center lg:h-[84px] gap-[8px] lg:gap-0 py-[12px] lg:py-[20px]">
+          {/* Quick-actions row: Tags, Repeat, Date, Delete */}
+          <div className="flex items-center gap-[8px] ps-[20px] pe-[20px] lg:pe-0 lg:flex-1">
             {!dummy && (
-              <TagsComponent
-                name="tags"
-                label={t('tags', 'Tags')}
-                initial={tags}
-                onChange={(e) => {
-                  setTags(e.target.value);
-                }}
-              />
+              <>
+                {/* Tags — icon-only on mobile, full label on desktop */}
+                <div className="lg:hidden shrink-0">
+                  <TagsComponent
+                    name="tags"
+                    label={t('tags', 'Tags')}
+                    initial={tags}
+                    iconOnly
+                    onChange={(e) => {
+                      setTags(e.target.value);
+                    }}
+                  />
+                </div>
+                <div className="hidden lg:block">
+                  <TagsComponent
+                    name="tags"
+                    label={t('tags', 'Tags')}
+                    initial={tags}
+                    onChange={(e) => {
+                      setTags(e.target.value);
+                    }}
+                  />
+                </div>
+                {/* Repeat — icon-only on mobile, full label on desktop */}
+                <div className="lg:hidden shrink-0">
+                  <RepeatComponent repeat={repeater} onChange={setRepeater} iconOnly />
+                </div>
+                <div className="hidden lg:block">
+                  <RepeatComponent repeat={repeater} onChange={setRepeater} />
+                </div>
+              </>
             )}
 
-            {!dummy && (
-              <RepeatComponent repeat={repeater} onChange={setRepeater} />
-            )}
-          </div>
-          <div className="pe-[20px] flex items-center justify-end gap-[8px]">
+            {/* Date picker — always shown; on mobile flex-1 to fill remaining space */}
+            <div className="flex-1 lg:flex-none">
+              <DatePicker onChange={setDate} date={date} />
+            </div>
+
+            {/* Delete — mobile: icon-only red button; desktop: hidden here (shown in right group) */}
             {existingData?.integration && (
               <button
                 onClick={deletePost}
-                className="cursor-pointer flex text-[#FF3F3F] gap-[8px] items-center text-[15px] font-[600]"
+                className="lg:hidden cursor-pointer flex shrink-0 text-[#FF3F3F] w-[44px] h-[44px] justify-center items-center rounded-[8px] border border-newTextColor/10"
+                aria-label={t('delete_post', 'Delete Post')}
+              >
+                <TrashIcon />
+              </button>
+            )}
+          </div>
+
+          {/* Primary actions + desktop delete */}
+          <div className="px-[20px] lg:ps-0 flex flex-col lg:flex-row lg:items-center gap-[8px] lg:gap-[8px]">
+            {/* Desktop-only delete with label */}
+            {existingData?.integration && (
+              <button
+                onClick={deletePost}
+                className="hidden lg:flex cursor-pointer shrink-0 text-[#FF3F3F] gap-[8px] items-center text-[15px] font-[600]"
               >
                 <div>
                   <TrashIcon />
@@ -578,88 +646,91 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 <div>{t('delete_post', 'Delete Post')}</div>
               </button>
             )}
-            <DatePicker onChange={setDate} date={date} />
-            {!addEditSets && (
-              <button
-                disabled={
-                  selectedIntegrations.length === 0 || loading || locked
-                }
-                onClick={schedule('draft')}
-                className="relative cursor-pointer disabled:cursor-not-allowed px-[20px] h-[44px] bg-btnSimple justify-center items-center flex rounded-[8px] text-[15px] font-[600]"
-              >
-                {loading && (
-                  <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
-                    <div className="animate-spin h-[20px] w-[20px] border-4 border-textColor border-t-transparent rounded-full" />
-                  </div>
-                )}
-                <div className={clsx(loading && 'invisible')}>
-                  {t('save_as_draft', 'Save as Draft')}
-                </div>
-              </button>
-            )}
-            {addEditSets && (
-              <button
-                className="text-white text-[15px] font-[600] min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-[#612BD3] ps-[20px] pe-[16px]"
-                disabled={
-                  selectedIntegrations.length === 0 || loading || locked
-                }
-                onClick={schedule('draft')}
-              >
-                Save Set
-              </button>
-            )}
-            {!addEditSets && (
-              <div className="group cursor-pointer relative">
+
+            {/* Save + Calendar — mobile: 2-col grid; desktop: flex row */}
+            <div className="grid grid-cols-2 gap-[8px] w-full lg:flex lg:w-auto lg:gap-[8px]">
+              {!addEditSets && (
                 <button
                   disabled={
                     selectedIntegrations.length === 0 || loading || locked
                   }
-                  onClick={schedule('schedule')}
-                  className="text-white relative min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-[#612BD3] ps-[20px] pe-[16px]"
+                  onClick={schedule('draft')}
+                  className="relative cursor-pointer disabled:cursor-not-allowed px-[20px] h-[44px] bg-btnSimple justify-center items-center flex rounded-[8px] text-[15px] font-[600]"
                 >
                   {loading && (
                     <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
-                      <div className="animate-spin h-[20px] w-[20px] border-4 border-white border-t-transparent rounded-full" />
+                      <div className="animate-spin h-[20px] w-[20px] border-4 border-textColor border-t-transparent rounded-full" />
                     </div>
                   )}
-                  <div
-                    className={clsx(
-                      'text-[15px] font-[600]',
-                      loading && 'invisible'
-                    )}
-                  >
-                    {selectedIntegrations.length === 0
-                      ? t('check_circles_above', 'Check the circles above')
-                      : dummy
-                      ? t('create_output', 'Create output')
-                      : !existingData?.integration
-                      ? t('add_to_calendar', 'Add to calendar')
-                      : existingData?.posts?.[0]?.state === 'DRAFT'
-                      ? t('schedule', 'Schedule')
-                      : t('update', 'Update')}
+                  <div className={clsx(loading && 'invisible')}>
+                    {t('save_as_draft', 'Save as Draft')}
                   </div>
-                  {!dummy && (
-                    <div className="flex justify-center items-center h-[20px] w-[20px] pt-[4px] arrow-change">
-                      <DropdownArrowSmallIcon className="group-hover:rotate-180 text-white" />
-                    </div>
-                  )}
                 </button>
-
-                {!dummy && (
+              )}
+              {addEditSets && (
+                <button
+                  className="text-white text-[15px] font-[600] min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-[#612BD3] ps-[20px] pe-[16px]"
+                  disabled={
+                    selectedIntegrations.length === 0 || loading || locked
+                  }
+                  onClick={schedule('draft')}
+                >
+                  Save Set
+                </button>
+              )}
+              {!addEditSets && (
+                <div className="group cursor-pointer relative">
                   <button
-                    onClick={schedule('now')}
                     disabled={
                       selectedIntegrations.length === 0 || loading || locked
                     }
-                    className="rounded-[8px] z-[300] disabled:cursor-not-allowed disabled:opacity-80 hidden group-hover:flex absolute bottom-[100%] -left-[12px] p-[12px] w-[206px] bg-newBgColorInner"
+                    onClick={schedule('schedule')}
+                    className="text-white relative w-full lg:min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-[#612BD3] ps-[20px] pe-[16px]"
                   >
-                    <div className="text-white rounded-[8px] bg-[#D82D7E] h-[44px] w-full flex justify-center items-center post-now">
-                      {t('post_now', 'Post Now')}
+                    {loading && (
+                      <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
+                        <div className="animate-spin h-[20px] w-[20px] border-4 border-white border-t-transparent rounded-full" />
+                      </div>
+                    )}
+                    <div
+                      className={clsx(
+                        'text-[15px] font-[600]',
+                        loading && 'invisible'
+                      )}
+                    >
+                      {selectedIntegrations.length === 0
+                        ? t('check_circles_above', 'Check the circles above')
+                        : dummy
+                        ? t('create_output', 'Create output')
+                        : !existingData?.integration
+                        ? t('add_to_calendar', 'Add to calendar')
+                        : existingData?.posts?.[0]?.state === 'DRAFT'
+                        ? t('schedule', 'Schedule')
+                        : t('update', 'Update')}
                     </div>
+                    {!dummy && (
+                      <div className="flex justify-center items-center h-[20px] w-[20px] pt-[4px] arrow-change">
+                        <DropdownArrowSmallIcon className="group-hover:rotate-180 text-white" />
+                      </div>
+                    )}
                   </button>
-                )}
-              </div>
-            )}
+
+                  {!dummy && (
+                    <button
+                      onClick={schedule('now')}
+                      disabled={
+                        selectedIntegrations.length === 0 || loading || locked
+                      }
+                      className="rounded-[8px] z-[300] disabled:cursor-not-allowed disabled:opacity-80 hidden group-hover:flex absolute bottom-[100%] -left-[12px] p-[12px] w-[206px] bg-newBgColorInner"
+                    >
+                      <div className="text-white rounded-[8px] bg-[#D82D7E] h-[44px] w-full flex justify-center items-center post-now">
+                        {t('post_now', 'Post Now')}
+                      </div>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

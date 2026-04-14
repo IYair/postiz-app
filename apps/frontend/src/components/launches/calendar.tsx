@@ -57,6 +57,8 @@ import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
+import { useIsMobile } from '@gitroom/frontend/components/launches/helpers/use.is.mobile';
+import { BottomSheet } from '@gitroom/frontend/components/ui/bottom.sheet';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -365,7 +367,7 @@ export const WeekView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 relative">
-        <div className="grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+        <div className="grid [grid-template-columns:64px_repeat(7,_minmax(120px,_1fr))] lg:[grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
           <div className="z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"></div>
           {localizedDays.map((day, index) => (
             <div
@@ -391,7 +393,7 @@ export const WeekView = () => {
           ))}
           {hours.map((hour) => (
             <Fragment key={hour}>
-              <div className="p-2 pe-4 text-center items-center justify-center flex text-[14px] text-newTableText">
+              <div className="p-2 pe-2 lg:pe-4 text-center items-center justify-center flex text-[13px] lg:text-[14px] text-newTableText">
                 {convertTimeFormatBasedOnLocality(hour)}
               </div>
               {localizedDays.map((day, indexDay) => (
@@ -413,7 +415,8 @@ export const WeekView = () => {
   );
 };
 export const MonthView = () => {
-  const { startDate } = useCalendar();
+  const { startDate, setFilters, customer } = useCalendar();
+  const isMobile = useIsMobile();
   const t = useT();
 
   // Use dayjs to get localized day names
@@ -464,26 +467,40 @@ export const MonthView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
-        <div className="grid grid-cols-7 grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
+        <div className="grid [grid-template-columns:repeat(7,_minmax(140px,_1fr))] lg:grid-cols-7 grid-rows-[48px_auto] lg:grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
           {localizedDays.map((day) => (
             <div
               key={day}
-              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"
+              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[48px] lg:h-[62px] rounded-[8px] sticky top-0"
             >
               <div>{day}</div>
             </div>
           ))}
-          {calendarDays.map((date, index) => (
-            <div
-              key={index}
-              className="text-center items-center justify-center flex"
-            >
-              <CalendarColumn
-                getDate={newDayjs(date.day).endOf('day')}
-                randomHour={true}
-              />
-            </div>
-          ))}
+          {calendarDays.map((date, index) => {
+            const cellDate = newDayjs(date.day).endOf('day');
+            const isoDate = newDayjs(date.day).format('YYYY-MM-DD');
+            return (
+              <div
+                key={index}
+                className="text-center items-center justify-center flex cursor-pointer lg:cursor-default"
+                onClick={() => {
+                  if (isMobile) {
+                    setFilters({
+                      startDate: isoDate,
+                      endDate: isoDate,
+                      display: 'day',
+                      customer: customer,
+                    });
+                  }
+                }}
+              >
+                <CalendarColumn
+                  getDate={cellDate}
+                  randomHour={true}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -674,14 +691,14 @@ export const CalendarColumn: FC<{
             modal.openModal({
               title: t('what_do_you_want_to_do', 'What do you want to do?'),
               children: (
-                <div className="flex flex-col">
+                <div className="flex flex-col w-screen h-[100dvh] max-w-none lg:w-full lg:h-auto lg:max-w-[500px]">
                   <div className="text-[20px] mb-[20px]">
                     {t(
                       'post_already_published_drag',
                       'This post was already published, what do you want to do?'
                     )}
                   </div>
-                  <div className="flex w-full gap-[10px]">
+                  <div className="flex flex-col lg:flex-row w-full gap-[10px]">
                     <div className="flex-1 flex">
                       <Button
                         type="button"
@@ -831,7 +848,7 @@ export const CalendarColumn: FC<{
       ref={drop as any}
     >
       {display === 'month' && (
-        <div className={clsx('pt-[6px] text-[14px]')}>{getDate.date()}</div>
+        <div className={clsx('pt-[6px] text-[12px] lg:text-[14px]')}>{getDate.date()}</div>
       )}
       <div
         className={clsx(
@@ -851,39 +868,41 @@ export const CalendarColumn: FC<{
               <div className="h-full w-full bg-newSettings rounded-[10px]" />
             </div>
           )}
-          {list.map((post) => (
-            <div
-              key={post.id}
-              className={clsx(
-                'text-textColor p-[2.5px] relative flex flex-col justify-center items-center'
-              )}
-            >
-              <div className="relative w-full flex flex-col items-center p-[2.5px]">
-                <CalendarItem
-                  display={display as 'day' | 'week' | 'month'}
-                  isBeforeNow={isBeforeNow}
-                  date={getDate}
-                  state={post.state}
-                  statistics={openStatistics(post.id)}
-                  missingRelease={openMissingRelease(post.id)}
-                  editPost={editPost(post, false)}
-                  duplicatePost={editPost(post, true)}
-                  copyDebugJson={user?.isSuperAdmin ? copyDebugJson(post) : undefined}
-                  post={post}
-                  integrations={integrations}
-                  deletePost={deletePost(post)}
-                />
+          <div>
+            {list.map((post) => (
+              <div
+                key={post.id}
+                className={clsx(
+                  'text-textColor p-[2.5px] relative flex flex-col justify-center items-center'
+                )}
+              >
+                <div className="relative w-full flex flex-col items-center p-[2.5px]">
+                  <CalendarItem
+                    display={display as 'day' | 'week' | 'month'}
+                    isBeforeNow={isBeforeNow}
+                    date={getDate}
+                    state={post.state}
+                    statistics={openStatistics(post.id)}
+                    missingRelease={openMissingRelease(post.id)}
+                    editPost={editPost(post, false)}
+                    duplicatePost={editPost(post, true)}
+                    copyDebugJson={user?.isSuperAdmin ? copyDebugJson(post) : undefined}
+                    post={post}
+                    integrations={integrations}
+                    deletePost={deletePost(post)}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-          {!showAll && postList.length > 3 && (
-            <div
-              className="text-center hover:underline py-[5px] text-textColor"
-              onClick={showAllFunc}
-            >
-              {t('show_more', '+ Show more')} ({postList.length - 3})
-            </div>
-          )}
+            ))}
+            {!showAll && postList.length > 3 && (
+              <div
+                className="text-center hover:underline py-[5px] text-textColor"
+                onClick={showAllFunc}
+              >
+                {t('show_more', '+ Show more')} ({postList.length - 3})
+              </div>
+            )}
+          </div>
           {showAll && postList.length > 3 && (
             <div
               className="text-center hover:underline py-[5px]"
@@ -1005,6 +1024,8 @@ const CalendarItem: FC<{
     missingRelease,
   } = props;
   const { disableXAnalytics } = useVariables();
+  const isMobile = useIsMobile();
+  const [actionsOpen, setActionsOpen] = useState(false);
   const preview = useCallback(() => {
     window.open(`/p/` + post.id + '?share=true', '_blank');
   }, [post]);
@@ -1019,8 +1040,9 @@ const CalendarItem: FC<{
       collect: (monitor) => ({
         opacity: monitor.isDragging() ? 0 : 1,
       }),
+      canDrag: () => !isMobile,
     }),
-    []
+    [isMobile]
   );
   return (
     <div
@@ -1035,6 +1057,14 @@ const CalendarItem: FC<{
         opacity,
       }}
     >
+      <button
+        onClick={(e) => { e.stopPropagation(); setActionsOpen(true); }}
+        className="lg:hidden absolute end-[4px] top-[4px] w-[32px] h-[32px] flex items-center justify-center rounded-[4px] bg-newBgColor text-[18px] leading-none z-10"
+        aria-label={t('post_actions', 'Post actions')}
+        aria-haspopup="menu"
+      >
+        &#x22EF;
+      </button>
       {state === 'ERROR' && (
         <div
           className="absolute -top-[6px] -left-[6px] z-20 w-[18px] h-[18px] rounded-full bg-red-500 flex items-center justify-center text-white text-[11px] font-bold cursor-pointer"
@@ -1063,7 +1093,7 @@ const CalendarItem: FC<{
         {copyDebugJson && (
           <div
             className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
+              'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
             )}
             onClick={copyDebugJson}
@@ -1073,7 +1103,7 @@ const CalendarItem: FC<{
         )}
         <div
           className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
+            'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
           onClick={duplicatePost}
@@ -1082,7 +1112,7 @@ const CalendarItem: FC<{
         </div>
         <div
           className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
+            'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
           onClick={preview}
@@ -1094,7 +1124,7 @@ const CalendarItem: FC<{
         ) : post.releaseId === 'missing' && missingRelease ? (
           <div
             className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
+              'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
             )}
             onClick={missingRelease}
@@ -1104,7 +1134,7 @@ const CalendarItem: FC<{
         ) : post.releaseId !== 'missing' ? (
           <div
             className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
+              'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
             )}
             onClick={statistics}
@@ -1116,7 +1146,7 @@ const CalendarItem: FC<{
         )}{' '}
         <div
           className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
+            'hidden lg:block lg:opacity-0 lg:group-hover:opacity-100 hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
           onClick={deletePost}
@@ -1159,6 +1189,63 @@ const CalendarItem: FC<{
           </div>
         )}
       </div>
+      <BottomSheet
+        open={isMobile && actionsOpen}
+        onClose={() => setActionsOpen(false)}
+        label={t('post_actions', 'Post actions')}
+      >
+        <div className="flex flex-col p-[16px] gap-[4px]">
+          <button
+            className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+            onClick={() => { setActionsOpen(false); editPost(); }}
+          >
+            {t('edit', 'Edit')}
+          </button>
+          <button
+            className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+            onClick={() => { setActionsOpen(false); duplicatePost(); }}
+          >
+            {t('duplicate', 'Duplicate')}
+          </button>
+          <button
+            className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+            onClick={() => { setActionsOpen(false); preview(); }}
+          >
+            {t('preview', 'Preview')}
+          </button>
+          {!((post.integration.providerIdentifier === 'x' && disableXAnalytics) || !post.releaseId) && (
+            post.releaseId === 'missing' && missingRelease ? (
+              <button
+                className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+                onClick={() => { setActionsOpen(false); missingRelease(); }}
+              >
+                {t('statistics', 'Statistics')}
+              </button>
+            ) : post.releaseId !== 'missing' ? (
+              <button
+                className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+                onClick={() => { setActionsOpen(false); statistics(); }}
+              >
+                {t('statistics', 'Statistics')}
+              </button>
+            ) : null
+          )}
+          {copyDebugJson && (
+            <button
+              className="h-[48px] text-start px-[12px] rounded-[8px] hover:bg-boxHover"
+              onClick={() => { setActionsOpen(false); copyDebugJson(); }}
+            >
+              {t('copy_debug_json', 'Copy debug JSON')}
+            </button>
+          )}
+          <button
+            className="h-[48px] text-start px-[12px] rounded-[8px] text-red-500 hover:bg-boxHover"
+            onClick={() => { setActionsOpen(false); deletePost(); }}
+          >
+            {t('delete', 'Delete')}
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   );
 });
@@ -1269,7 +1356,7 @@ export const SetSelectionModal: FC<{
   const t = useT();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 w-screen h-[100dvh] max-w-none lg:w-full lg:h-auto lg:max-w-[500px]">
       <div className="text-lg font-medium">
         {t('choose_set_or_continue', 'Choose a set or continue without one')}
       </div>
