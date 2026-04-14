@@ -414,7 +414,8 @@ export const WeekView = () => {
   );
 };
 export const MonthView = () => {
-  const { startDate } = useCalendar();
+  const { startDate, setFilters, customer } = useCalendar();
+  const isMobile = useIsMobile();
   const t = useT();
 
   // Use dayjs to get localized day names
@@ -465,26 +466,40 @@ export const MonthView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
-        <div className="grid grid-cols-7 grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
+        <div className="grid grid-cols-7 grid-rows-[48px_auto] md:grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
           {localizedDays.map((day) => (
             <div
               key={day}
-              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"
+              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[48px] md:h-[62px] rounded-[8px] sticky top-0"
             >
               <div>{day}</div>
             </div>
           ))}
-          {calendarDays.map((date, index) => (
-            <div
-              key={index}
-              className="text-center items-center justify-center flex"
-            >
-              <CalendarColumn
-                getDate={newDayjs(date.day).endOf('day')}
-                randomHour={true}
-              />
-            </div>
-          ))}
+          {calendarDays.map((date, index) => {
+            const cellDate = newDayjs(date.day).endOf('day');
+            const isoDate = newDayjs(date.day).format('YYYY-MM-DD');
+            return (
+              <div
+                key={index}
+                className="text-center items-center justify-center flex cursor-pointer md:cursor-default"
+                onClick={() => {
+                  if (isMobile) {
+                    setFilters({
+                      startDate: isoDate,
+                      endDate: isoDate,
+                      display: 'day',
+                      customer: customer,
+                    });
+                  }
+                }}
+              >
+                <CalendarColumn
+                  getDate={cellDate}
+                  randomHour={true}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -834,7 +849,7 @@ export const CalendarColumn: FC<{
       ref={drop as any}
     >
       {display === 'month' && (
-        <div className={clsx('pt-[6px] text-[14px]')}>{getDate.date()}</div>
+        <div className={clsx('pt-[6px] text-[12px] md:text-[14px]')}>{getDate.date()}</div>
       )}
       <div
         className={clsx(
@@ -854,37 +869,49 @@ export const CalendarColumn: FC<{
               <div className="h-full w-full bg-newSettings rounded-[10px]" />
             </div>
           )}
-          {list.map((post) => (
-            <div
-              key={post.id}
-              className={clsx(
-                'text-textColor p-[2.5px] relative flex flex-col justify-center items-center'
-              )}
-            >
-              <div className="relative w-full flex flex-col items-center p-[2.5px]">
-                <CalendarItem
-                  display={display as 'day' | 'week' | 'month'}
-                  isBeforeNow={isBeforeNow}
-                  date={getDate}
-                  state={post.state}
-                  statistics={openStatistics(post.id)}
-                  missingRelease={openMissingRelease(post.id)}
-                  editPost={editPost(post, false)}
-                  duplicatePost={editPost(post, true)}
-                  copyDebugJson={user?.isSuperAdmin ? copyDebugJson(post) : undefined}
-                  post={post}
-                  integrations={integrations}
-                  deletePost={deletePost(post)}
-                />
+          <div className={clsx(display === 'month' ? 'hidden md:block' : '')}>
+            {list.map((post) => (
+              <div
+                key={post.id}
+                className={clsx(
+                  'text-textColor p-[2.5px] relative flex flex-col justify-center items-center'
+                )}
+              >
+                <div className="relative w-full flex flex-col items-center p-[2.5px]">
+                  <CalendarItem
+                    display={display as 'day' | 'week' | 'month'}
+                    isBeforeNow={isBeforeNow}
+                    date={getDate}
+                    state={post.state}
+                    statistics={openStatistics(post.id)}
+                    missingRelease={openMissingRelease(post.id)}
+                    editPost={editPost(post, false)}
+                    duplicatePost={editPost(post, true)}
+                    copyDebugJson={user?.isSuperAdmin ? copyDebugJson(post) : undefined}
+                    post={post}
+                    integrations={integrations}
+                    deletePost={deletePost(post)}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-          {!showAll && postList.length > 3 && (
-            <div
-              className="text-center hover:underline py-[5px] text-textColor"
-              onClick={showAllFunc}
-            >
-              {t('show_more', '+ Show more')} ({postList.length - 3})
+            ))}
+            {!showAll && postList.length > 3 && (
+              <div
+                className="text-center hover:underline py-[5px] text-textColor"
+                onClick={showAllFunc}
+              >
+                {t('show_more', '+ Show more')} ({postList.length - 3})
+              </div>
+            )}
+          </div>
+          {display === 'month' && (
+            <div className="md:hidden flex items-center justify-center mt-[4px]">
+              {postList.length > 0 && (
+                <div className="w-[6px] h-[6px] rounded-full bg-primary" />
+              )}
+              {postList.length > 1 && (
+                <span className="ms-[4px] text-[10px] text-textColor">{postList.length}</span>
+              )}
             </div>
           )}
           {showAll && postList.length > 3 && (
