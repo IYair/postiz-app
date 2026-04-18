@@ -85,7 +85,7 @@ export class CopilotController {
       },
     });
 
-    const mastra = await this._mastraService.mastra(organization.id);
+    const mastra = await this._mastraService.mastra(user.id);
     const requestContext = new RequestContext<ChannelsContext>();
     requestContext.set(
       'integrations',
