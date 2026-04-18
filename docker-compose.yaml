@@ -2,9 +2,14 @@ services:
   postiz-app:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_VERSION: "${NEXT_PUBLIC_VERSION:-prod}"
     restart: always
     environment:
+      NODE_ENV: "production"
+      DISABLE_SOURCE_MAPS: "${DISABLE_SOURCE_MAPS:-true}"
+      SENTRY_DISABLE: "${SENTRY_DISABLE:-true}"
       MAIN_URL: "https://${POSTIZ_HOST:-localhost:4007}"
       FRONTEND_URL: "https://${POSTIZ_HOST:-localhost:4007}"
       NEXT_PUBLIC_BACKEND_URL: "https://${POSTIZ_HOST:-localhost:4007}/api"
@@ -47,6 +52,12 @@ services:
         condition: service_healthy
       postiz-redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5000/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
     networks:
       - postiz-net
       - dokploy-network
