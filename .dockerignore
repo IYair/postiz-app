@@ -1,23 +1,61 @@
-# We want the docker builds to be clean, and as fast as possible. Don't send
-# any half-built stuff in the build context as a pre-caution (also saves copying
-# 180k files in node_modules that isn't used!).
+# Node / package managers
 **/node_modules
-node_modules/*
-node_modules
-docker-data/*
-dist
-.nx
-/apps/frontend/.next
-/apps/backend/dist
-/apps/workers/dist
-/apps/cron/dist
-/apps/commands/dist
-.devcontainer
-**/.git
-**/*.md
-**/LICENSE
-**/npm-debug.log
-**/*.vscode
+**/.pnpm-store
+**/.pnpm-debug.log
+
+# Build outputs
+**/dist
+**/build
+**/.next
+**/.turbo
+**/.nx
+**/tsconfig.tsbuildinfo
+**/*.tsbuildinfo
+
+# Tests / coverage
+**/coverage
+**/.nyc_output
+**/reports
+**/__tests__
+**/*.test.ts
+**/*.spec.ts
+
+# Git / CI
 .git
 .github
-reports
+.gitlab
+Jenkins
+.coderabbit.yaml
+sonar-project.properties
+
+# Editor / OS
+.vscode
+.idea
+**/.DS_Store
+**/*.swp
+**/*.swo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+**/.secrets
+docker-data
+docker-compose*.yaml
+Dockerfile.dev
+
+# Docs / misc
+**/*.md
+**/LICENSE
+docs
+var/docker/create-namespace-default.sh
+
+# Logs
+**/npm-debug.log
+**/yarn-error.log
+**/*.log
+
+# Existing Postiz artifacts
+libraries/plugins/src/plugins.ts
+i18n.cache
+apps/backend/uploads
