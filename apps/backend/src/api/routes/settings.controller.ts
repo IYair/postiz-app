@@ -1,10 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
 import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import { ImagePresetRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/image-preset.repository';
 import { AddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/add.team.member.dto';
 import { ShortlinkPreferenceDto } from '@gitroom/nestjs-libraries/dtos/settings/shortlink-preference.dto';
+import { ImagePromptExtraDto } from '@gitroom/nestjs-libraries/dtos/settings/image-prompt-extra.dto';
+import { ImagePresetDto } from '@gitroom/nestjs-libraries/dtos/settings/image-preset.dto';
+import { BrandKitDto } from '@gitroom/nestjs-libraries/dtos/settings/brand-kit.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthorizationActions, Sections } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 
@@ -12,7 +16,8 @@ import { AuthorizationActions, Sections } from '@gitroom/backend/services/auth/p
 @Controller('/settings')
 export class SettingsController {
   constructor(
-    private _organizationService: OrganizationService
+    private _organizationService: OrganizationService,
+    private _imagePresetRepository: ImagePresetRepository
   ) {}
 
   @Get('/team')
@@ -63,5 +68,69 @@ export class SettingsController {
       org.id,
       body.shortlink
     );
+  }
+
+  @Get('/image-prompt-extra')
+  async getImagePromptExtra(@GetOrgFromRequest() org: Organization) {
+    return this._organizationService.getImagePromptExtra(org.id);
+  }
+
+  @Post('/image-prompt-extra')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
+  async updateImagePromptExtra(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: ImagePromptExtraDto
+  ) {
+    return this._organizationService.updateImagePromptExtra(
+      org.id,
+      body.imagePromptExtra ?? null
+    );
+  }
+
+  @Get('/image-presets')
+  listImagePresets(@GetOrgFromRequest() org: Organization) {
+    return this._imagePresetRepository.list(org.id);
+  }
+
+  @Post('/image-presets')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
+  createImagePreset(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: ImagePresetDto
+  ) {
+    return this._imagePresetRepository.create(org.id, body);
+  }
+
+  @Put('/image-presets/:id')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
+  updateImagePreset(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string,
+    @Body() body: ImagePresetDto
+  ) {
+    return this._imagePresetRepository.update(org.id, id, body);
+  }
+
+  @Delete('/image-presets/:id')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
+  deleteImagePreset(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string
+  ) {
+    return this._imagePresetRepository.delete(org.id, id);
+  }
+
+  @Get('/brand-kit')
+  getBrandKit(@GetOrgFromRequest() org: Organization) {
+    return this._organizationService.getBrandKit(org.id);
+  }
+
+  @Post('/brand-kit')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
+  updateBrandKit(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: BrandKitDto
+  ) {
+    return this._organizationService.updateBrandKit(org.id, body);
   }
 }

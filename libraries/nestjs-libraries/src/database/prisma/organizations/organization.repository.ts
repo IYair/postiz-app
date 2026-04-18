@@ -419,4 +419,58 @@ export class OrganizationRepository {
       },
     });
   }
+
+  getImagePromptExtra(orgId: string) {
+    return this._organization.model.organization.findUnique({
+      where: {
+        id: orgId,
+      },
+      select: {
+        imagePromptExtra: true,
+      },
+    });
+  }
+
+  updateImagePromptExtra(orgId: string, imagePromptExtra: string | null) {
+    return this._organization.model.organization.update({
+      where: {
+        id: orgId,
+      },
+      data: {
+        imagePromptExtra,
+      },
+    });
+  }
+
+  getBrandKit(orgId: string) {
+    return this._organization.model.organization.findUnique({
+      where: { id: orgId },
+      select: {
+        brandKitEnabled: true,
+        brandLogoUrl: true,
+        brandColors: true,
+        brandTypography: true,
+      },
+    });
+  }
+
+  updateBrandKit(
+    orgId: string,
+    data: {
+      brandKitEnabled: boolean;
+      brandLogoUrl?: string | null;
+      brandColors?: string | null;
+      brandTypography?: string | null;
+    }
+  ) {
+    return this._organization.model.organization.update({
+      where: { id: orgId },
+      data: {
+        brandKitEnabled: data.brandKitEnabled,
+        brandLogoUrl: data.brandLogoUrl ?? null,
+        brandColors: data.brandColors ?? null,
+        brandTypography: data.brandTypography ?? null,
+      },
+    });
+  }
 }

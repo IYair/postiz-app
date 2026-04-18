@@ -6,8 +6,16 @@ export interface TextOptions {
   stopSequences?: string[];
 }
 
+export type ImageAspectRatio = 'square' | 'landscape' | 'portrait' | 'story';
+
+export interface ImageReference {
+  mimeType: string;
+  base64: string;
+}
+
 export interface ImageOptions {
-  aspectRatio: 'square' | 'landscape' | 'portrait';
+  aspectRatio: ImageAspectRatio;
+  referenceImages?: ImageReference[];
 }
 
 export interface ChatMessage {

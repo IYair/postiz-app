@@ -2,7 +2,11 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { shuffle } from 'lodash';
 import { z } from 'zod';
 import { AiProviderResolver } from '@gitroom/nestjs-libraries/ai/ai.provider-resolver';
-import { ChatMessage } from '@gitroom/nestjs-libraries/ai/ai.interfaces';
+import {
+  ChatMessage,
+  ImageAspectRatio,
+  ImageReference,
+} from '@gitroom/nestjs-libraries/ai/ai.interfaces';
 
 const PicturePrompt = z.object({
   prompt: z.string(),
@@ -53,11 +57,13 @@ export class OpenaiService {
     userId: string,
     prompt: string,
     isUrl: boolean,
-    isVertical = false
+    aspectRatio: ImageAspectRatio = 'square',
+    referenceImages?: ImageReference[]
   ) {
     const imageProvider = await this.getImageProviderOrFail(userId);
     const buffer = await imageProvider.generateImage(prompt, {
-      aspectRatio: isVertical ? 'portrait' : 'square',
+      aspectRatio,
+      referenceImages,
     });
 
     if (isUrl) {
@@ -66,6 +72,12 @@ export class OpenaiService {
     }
 
     return buffer.toString('base64');
+  }
+
+  async expandPictureOnly(userId: string, prompt: string) {
+    // Returns the LLM-expanded prompt without invoking the image generator.
+    // Used for the "preview & edit final prompt" flow (feature 2C).
+    return this.generatePromptForPicture(userId, prompt);
   }
 
   async generatePromptForPicture(userId: string, prompt: string) {

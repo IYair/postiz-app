@@ -20,6 +20,11 @@ model Organization {
   allowTrial          Boolean              @default(false)
   isTrailing          Boolean              @default(false)
   shortlink           ShortLinkPreference  @default(ASK)
+  imagePromptExtra    String?              @db.VarChar(2000)
+  brandKitEnabled     Boolean              @default(false)
+  brandLogoUrl        String?              @db.VarChar(500)
+  brandColors         String?              @db.VarChar(500)
+  brandTypography     String?              @db.VarChar(300)
   autoPost            AutoPost[]
   Comments            Comments[]
   credits             Credits[]
@@ -43,10 +48,24 @@ model Organization {
   webhooks            Webhooks[]
   oauthApp            OAuthApp[]
   oauthAuthorizations OAuthAuthorization[]
+  imagePresets        ImagePreset[]
 
   @@index([apiKey])
   @@index([streakSince])
   @@index([paymentId])
+}
+
+model ImagePreset {
+  id           String       @id @default(uuid())
+  orgId        String
+  name         String
+  stylePrompt  String       @db.VarChar(2000)
+  aspectRatio  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
 }
 
 model Tags {

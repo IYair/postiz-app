@@ -36,22 +36,94 @@ export class MediaService {
     prompt: string,
     org: Organization,
     generatePromptFirst?: boolean,
-    userId?: string
+    userId?: string,
+    aspectRatio: 'square' | 'landscape' | 'portrait' | 'story' = 'square',
+    referenceImages?: { mimeType: string; base64: string }[]
   ) {
     const generating = await this._subscriptionService.useCredit(
       org,
       'ai_images',
       async () => {
+        prompt = this.applyBrandContext(prompt, org);
+
+        // When brand kit is enabled and the caller didn't supply references,
+        // auto-attach the brand logo so the generator uses it as style anchor.
+        let effectiveReferences = referenceImages;
+        if (
+          org.brandKitEnabled &&
+          org.brandLogoUrl &&
+          (!effectiveReferences || effectiveReferences.length === 0)
+        ) {
+          const logoRef = await this.fetchAsReference(org.brandLogoUrl);
+          if (logoRef) {
+            effectiveReferences = [logoRef];
+          }
+        }
+
         if (generatePromptFirst) {
           prompt = await this._openAi.generatePromptForPicture(userId!, prompt);
           console.log('Prompt:', prompt);
         }
-        return this._openAi.generateImage(userId!, prompt, !!generatePromptFirst);
+        return this._openAi.generateImage(
+          userId!,
+          prompt,
+          !!generatePromptFirst,
+          aspectRatio,
+          effectiveReferences
+        );
       }
     );
 
     return generating;
   }
+
+  async expandImagePrompt(
+    userId: string,
+    prompt: string,
+    org: Organization
+  ) {
+    const seed = this.applyBrandContext(prompt, org);
+    return this._openAi.expandPictureOnly(userId, seed);
+  }
+
+  private applyBrandContext(prompt: string, org: Organization) {
+    const blocks: string[] = [];
+
+    if (org.imagePromptExtra) {
+      blocks.push(
+        `<!-- brand style guide -->\n${org.imagePromptExtra}\n<!-- /brand style guide -->`
+      );
+    }
+
+    if (org.brandKitEnabled) {
+      const kit: string[] = [];
+      if (org.brandColors) kit.push(`Brand colors: ${org.brandColors}`);
+      if (org.brandTypography) kit.push(`Typography: ${org.brandTypography}`);
+      if (kit.length) {
+        blocks.push(`<!-- brand kit -->\n${kit.join('\n')}\n<!-- /brand kit -->`);
+      }
+    }
+
+    if (!blocks.length) return prompt;
+    return `${prompt}\n\n${blocks.join('\n\n')}`;
+  }
+
+  private async fetchAsReference(
+    url: string
+  ): Promise<{ mimeType: string; base64: string } | null> {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const contentType = res.headers.get('content-type') || 'image/png';
+      const buffer = Buffer.from(await res.arrayBuffer());
+      // Defensive upper bound so a misconfigured URL can't blow up the payload.
+      if (buffer.length > 4 * 1024 * 1024) return null;
+      return { mimeType: contentType, base64: buffer.toString('base64') };
+    } catch {
+      return null;
+    }
+  }
+
 
   saveFile(org: string, fileName: string, filePath: string, originalName?: string) {
     return this._mediaRepository.saveFile(org, fileName, filePath, originalName);

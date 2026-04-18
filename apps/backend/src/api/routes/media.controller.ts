@@ -41,6 +41,22 @@ export class MediaController {
     return this._mediaService.deleteMedia(org.id, id);
   }
 
+  @Post('/expand-image-prompt')
+  async expandImagePrompt(
+    @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
+    @Body('prompt') prompt: string
+  ) {
+    // Returns the LLM-expanded prompt so the user can review/edit before
+    // spending a credit on image generation (feature 2C).
+    const expanded = await this._mediaService.expandImagePrompt(
+      user.id,
+      prompt,
+      org
+    );
+    return { prompt: expanded };
+  }
+
   @Post('/generate-video')
   generateVideo(
     @GetOrgFromRequest() org: Organization,
@@ -55,14 +71,24 @@ export class MediaController {
   async generateImage(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
-    @Body('prompt') prompt: string
+    @Body('prompt') prompt: string,
+    @Body('aspectRatio') aspectRatio?: 'square' | 'landscape' | 'portrait' | 'story',
+    @Body('referenceImages')
+    referenceImages?: { mimeType: string; base64: string }[]
   ) {
     const total = await this._subscriptionService.checkCredits(org);
     if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
       return false;
     }
 
-    const result = await this._mediaService.generateImage(prompt, org, false, user.id);
+    const result = await this._mediaService.generateImage(
+      prompt,
+      org,
+      false,
+      user.id,
+      aspectRatio ?? 'square',
+      referenceImages
+    );
     const base64 = Buffer.isBuffer(result)
       ? result.toString('base64')
       : result;
@@ -76,14 +102,27 @@ export class MediaController {
   async generateImageFromText(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
-    @Body('prompt') prompt: string
+    @Body('prompt') prompt: string,
+    @Body('aspectRatio') aspectRatio?: 'square' | 'landscape' | 'portrait' | 'story',
+    @Body('referenceImages')
+    referenceImages?: { mimeType: string; base64: string }[],
+    @Body('skipExpansion') skipExpansion?: boolean
   ) {
     const total = await this._subscriptionService.checkCredits(org);
     if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
       return false;
     }
 
-    const result = await this._mediaService.generateImage(prompt, org, true, user.id);
+    // When skipExpansion is true, the caller passed an already-expanded prompt
+    // (feature 2C: "preview & edit final prompt"), so we bypass LLM expansion.
+    const result = await this._mediaService.generateImage(
+      prompt,
+      org,
+      !skipExpansion,
+      user.id,
+      aspectRatio ?? 'portrait',
+      referenceImages
+    );
     if (!result) {
       return false;
     }
