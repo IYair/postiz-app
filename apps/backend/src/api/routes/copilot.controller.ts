@@ -142,7 +142,13 @@ export class CopilotController {
         threadId,
       });
     } catch (err) {
-      return { messages: [] };
+      Logger.error(
+        `memory.recall failed for thread=${threadId} resource=${organization.id}: ${
+          (err as Error)?.message
+        }`,
+        (err as Error)?.stack
+      );
+      return { messages: [], uiMessages: [] };
     }
   }
 
