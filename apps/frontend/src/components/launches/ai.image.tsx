@@ -25,13 +25,58 @@ const DEFAULT_STYLES = [
 ];
 
 type AspectRatio = 'square' | 'landscape' | 'portrait' | 'story';
+type AspectSelection = AspectRatio | 'auto';
 
-const ASPECT_RATIOS: { value: AspectRatio; label: string; hint: string }[] = [
+const ASPECT_RATIOS: { value: AspectSelection; label: string; hint: string }[] = [
+  { value: 'auto', label: 'Auto', hint: 'match each platform' },
   { value: 'portrait', label: '4:5', hint: 'LinkedIn / IG feed' },
   { value: 'square', label: '1:1', hint: 'IG / FB post' },
   { value: 'landscape', label: '16:9', hint: 'FB / Twitter / blog' },
   { value: 'story', label: '9:16', hint: 'IG / FB story / reel' },
 ];
+
+// Preferred aspect ratio per platform, based on each network's feed default.
+// Story-first platforms (tiktok) force 9:16; video platforms prefer landscape.
+const PLATFORM_ASPECT: Record<string, AspectRatio> = {
+  linkedin: 'portrait',
+  'linkedin-page': 'portrait',
+  facebook: 'portrait',
+  instagram: 'square',
+  'instagram-standalone': 'square',
+  threads: 'square',
+  pinterest: 'portrait',
+  tiktok: 'story',
+  youtube: 'landscape',
+  x: 'landscape',
+  reddit: 'landscape',
+  bluesky: 'landscape',
+  mastodon: 'landscape',
+  telegram: 'square',
+  discord: 'landscape',
+  'google-my-business': 'landscape',
+};
+
+// Priority used to pick a single aspect ratio when the post targets several
+// networks at once. Lower index wins. Story is forced first because TikTok
+// and Reels literally don't accept anything else; portrait wins next so
+// LinkedIn/IG-feed don't lose their native space.
+const ASPECT_PRIORITY: AspectRatio[] = ['story', 'portrait', 'square', 'landscape'];
+
+function resolveAutoAspect(
+  integrations: { integration: { identifier: string } }[]
+): AspectRatio {
+  if (!integrations.length) return 'portrait';
+  const chosen = new Set<AspectRatio>();
+  for (const sel of integrations) {
+    const aspect = PLATFORM_ASPECT[sel.integration.identifier];
+    if (aspect) chosen.add(aspect);
+  }
+  if (!chosen.size) return 'portrait';
+  for (const candidate of ASPECT_PRIORITY) {
+    if (chosen.has(candidate)) return candidate;
+  }
+  return 'portrait';
+}
 
 const MAX_REFERENCE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB
 
@@ -70,7 +115,7 @@ export const AiImage: FC<{
   const t = useT();
   const { value, onChange } = props;
   const [loading, setLoading] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('portrait');
+  const [aspectRatio, setAspectRatio] = useState<AspectSelection>('auto');
   const [previewMode, setPreviewMode] = useState(true);
   const [referenceImage, setReferenceImage] = useState<{
     mimeType: string;
@@ -87,8 +132,16 @@ export const AiImage: FC<{
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const setLocked = useLaunchStore((p) => p.setLocked);
+  const selectedIntegrations = useLaunchStore((p) => p.selectedIntegrations);
   const fetch = useFetch();
   const { data: presets } = useImagePresets();
+
+  const autoAspect = useMemo(
+    () => resolveAutoAspect(selectedIntegrations),
+    [selectedIntegrations]
+  );
+  const effectiveAspect: AspectRatio =
+    aspectRatio === 'auto' ? autoAspect : aspectRatio;
 
   const pickReference = useCallback(() => {
     fileInputRef.current?.click();
@@ -116,7 +169,7 @@ export const AiImage: FC<{
       setLocked(true);
       const body: any = {
         prompt: finalPrompt,
-        aspectRatio,
+        aspectRatio: effectiveAspect,
         skipExpansion,
       };
       if (referenceImage) {
@@ -141,7 +194,7 @@ export const AiImage: FC<{
       }
       onChange(image);
     },
-    [aspectRatio, fetch, onChange, referenceImage, setLocked]
+    [effectiveAspect, fetch, onChange, referenceImage, setLocked]
   );
 
   const regenerateWithFeedback = useCallback(async () => {
@@ -180,7 +233,7 @@ Keep the overall style and composition of the reference image, apply only the it
           method: 'POST',
           body: JSON.stringify({
             prompt: feedbackPrompt,
-            aspectRatio,
+            aspectRatio: effectiveAspect,
             referenceImages: [{ mimeType, base64 }],
           }),
         })
@@ -195,11 +248,14 @@ Keep the overall style and composition of the reference image, apply only the it
       setLoading(false);
       setLocked(false);
     }
-  }, [lastResultPath, feedback, value, aspectRatio, fetch, onChange, setLocked]);
+  }, [lastResultPath, feedback, value, effectiveAspect, fetch, onChange, setLocked]);
 
   const startFlow = useCallback(
     (stylePrompt: string, presetAspect?: string | null) => async () => {
-      if (presetAspect && ASPECT_RATIOS.some((r) => r.value === presetAspect)) {
+      if (
+        presetAspect &&
+        ASPECT_RATIOS.some((r) => r.value === presetAspect && r.value !== 'auto')
+      ) {
         setAspectRatio(presetAspect as AspectRatio);
       }
       const rawPrompt = buildPrompt(value, stylePrompt);
@@ -335,13 +391,31 @@ Keep the overall style and composition of the reference image, apply only the it
                           : 'hover:bg-sixth'
                       )}
                     >
-                      <div className="font-[600]">{r.label}</div>
+                      <div className="font-[600]">
+                        {r.label}
+                        {r.value === 'auto' && aspectRatio === 'auto' && (
+                          <span className="ms-[4px] text-[9px] text-customColor18 font-[400]">
+                            → {autoAspect}
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[9px] text-customColor18">
                         {r.hint}
                       </div>
                     </button>
                   ))}
                 </div>
+                {aspectRatio === 'auto' && (
+                  <div className="text-[9px] text-customColor18 mt-[4px]">
+                    {selectedIntegrations.length
+                      ? `${selectedIntegrations.length} ${
+                          selectedIntegrations.length === 1
+                            ? 'platform'
+                            : 'platforms'
+                        } selected → ${autoAspect}`
+                      : 'No platform selected — using portrait'}
+                  </div>
+                )}
               </div>
               <div className="p-[8px] border-b border-newBgLineColor flex flex-col gap-[6px]">
                 <label className="flex items-center gap-[6px] text-[11px] cursor-pointer">
