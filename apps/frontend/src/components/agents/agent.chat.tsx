@@ -92,15 +92,22 @@ const LoadMessages: FC<{ id: string }> = ({ id }) => {
   const fetch = useFetch();
 
   const loadMessages = useCallback(async (idToSet: string) => {
-    const data = await (await fetch(`/copilot/${idToSet}/list`)).json();
-    setMessages(
-      data.uiMessages.map((p: any) => {
-        return new TextMessage({
-          content: p.content,
-          role: p.role,
-        });
-      })
-    );
+    try {
+      const data = await (await fetch(`/copilot/${idToSet}/list`)).json();
+      const uiMessages = Array.isArray(data?.uiMessages) ? data.uiMessages : [];
+      setMessages(
+        uiMessages.map(
+          (p: any) =>
+            new TextMessage({
+              content: p.content,
+              role: p.role,
+            })
+        )
+      );
+    } catch (err) {
+      console.error('Failed to load thread messages', err);
+      setMessages([]);
+    }
   }, []);
 
   useEffect(() => {
