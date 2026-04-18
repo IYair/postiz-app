@@ -12,5 +12,9 @@ export const checkAuth = (
       JSON.stringify(authInfo)
     );
     (context.requestContext as any).set('ui', 'false');
+    const userId = authInfo?.users?.[0]?.userId;
+    if (userId) {
+      (context.requestContext as any).set('userId', userId);
+    }
   }
 };

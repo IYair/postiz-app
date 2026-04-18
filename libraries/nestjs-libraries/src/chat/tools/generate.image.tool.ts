@@ -39,8 +39,10 @@ export class GenerateImageTool implements AgentToolInterface {
       execute: async (inputData, context) => {
         checkAuth(inputData, context);
         const org = JSON.parse((context?.requestContext as any)?.get('organization') as string);
-        // Extract userId from the org's users array if available
-        const userId = org?.users?.[0]?.userId || '';
+        const userId =
+          ((context?.requestContext as any)?.get('userId') as string) ||
+          org?.users?.[0]?.userId ||
+          '';
         const image = await this._mediaService.generateImage(
           inputData.prompt,
           org,

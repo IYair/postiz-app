@@ -31,6 +31,7 @@ export type ChannelsContext = {
   integrations: string;
   organization: string;
   ui: string;
+  userId: string;
 };
 
 @Controller('/copilot')
@@ -94,6 +95,7 @@ export class CopilotController {
 
     requestContext.set('organization', JSON.stringify(organization));
     requestContext.set('ui', 'true');
+    requestContext.set('userId', user.id);
 
     const agents = MastraAgent.getLocalAgents({
       resourceId: organization.id,
