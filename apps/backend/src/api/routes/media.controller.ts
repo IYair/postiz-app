@@ -23,6 +23,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CustomFileValidationPipe } from '@gitroom/nestjs-libraries/upload/custom.upload.validation';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
+import { GenerateImageDto } from '@gitroom/nestjs-libraries/dtos/media/generate-image.dto';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
@@ -71,10 +72,7 @@ export class MediaController {
   async generateImage(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
-    @Body('prompt') prompt: string,
-    @Body('aspectRatio') aspectRatio?: 'square' | 'landscape' | 'portrait' | 'story',
-    @Body('referenceImages')
-    referenceImages?: { mimeType: string; base64: string }[]
+    @Body() body: GenerateImageDto
   ) {
     const total = await this._subscriptionService.checkCredits(org);
     if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
@@ -82,12 +80,12 @@ export class MediaController {
     }
 
     const result = await this._mediaService.generateImage(
-      prompt,
+      body.prompt,
       org,
       false,
       user.id,
-      aspectRatio ?? 'square',
-      referenceImages
+      body.aspectRatio ?? 'square',
+      body.referenceImages
     );
     const base64 = Buffer.isBuffer(result)
       ? result.toString('base64')
@@ -102,11 +100,7 @@ export class MediaController {
   async generateImageFromText(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
-    @Body('prompt') prompt: string,
-    @Body('aspectRatio') aspectRatio?: 'square' | 'landscape' | 'portrait' | 'story',
-    @Body('referenceImages')
-    referenceImages?: { mimeType: string; base64: string }[],
-    @Body('skipExpansion') skipExpansion?: boolean
+    @Body() body: GenerateImageDto
   ) {
     const total = await this._subscriptionService.checkCredits(org);
     if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
@@ -115,13 +109,15 @@ export class MediaController {
 
     // When skipExpansion is true, the caller passed an already-expanded prompt
     // (feature 2C: "preview & edit final prompt"), so we bypass LLM expansion.
+    // Default aspectRatio matches /generate-image for consistency; the frontend
+    // always sends an explicit value resolved from the platform selection.
     const result = await this._mediaService.generateImage(
-      prompt,
+      body.prompt,
       org,
-      !skipExpansion,
+      !body.skipExpansion,
       user.id,
-      aspectRatio ?? 'portrait',
-      referenceImages
+      body.aspectRatio ?? 'square',
+      body.referenceImages
     );
     if (!result) {
       return false;

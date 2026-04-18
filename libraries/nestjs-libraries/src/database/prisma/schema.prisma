@@ -58,9 +58,9 @@ model Organization {
 model ImagePreset {
   id           String       @id @default(uuid())
   orgId        String
-  name         String
+  name         String       @db.VarChar(60)
   stylePrompt  String       @db.VarChar(2000)
-  aspectRatio  String?
+  aspectRatio  String?      @db.VarChar(20)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   organization Organization @relation(fields: [orgId], references: [id])

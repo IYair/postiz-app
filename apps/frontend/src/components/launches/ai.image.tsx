@@ -204,14 +204,32 @@ export const AiImage: FC<{
     try {
       // Fetch the previous result to reuse it as style anchor for iteration.
       const resp = await window.fetch(lastResultPath);
-      const blob = await resp.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
+      if (!resp.ok) {
+        setLoading(false);
+        setLocked(false);
+        window.alert(
+          t(
+            'previous_image_unavailable',
+            'Could not load the previous image (HTTP ' +
+              resp.status +
+              '). Generate a new image and try again.'
+          )
+        );
+        return;
       }
-      const base64 = btoa(binary);
+      const blob = await resp.blob();
+      // FileReader is non-blocking and handles the base64 encoding natively,
+      // avoiding the quadratic string concat that used to freeze the tab on
+      // multi-MB images.
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(reader.error ?? new Error('read error'));
+        reader.onload = () => {
+          const raw = reader.result as string;
+          resolve(raw.replace(/^data:[^;]+;base64,/, ''));
+        };
+        reader.readAsDataURL(blob);
+      });
       const mimeType = blob.type || 'image/png';
 
       const feedbackPrompt = `
@@ -248,7 +266,7 @@ Keep the overall style and composition of the reference image, apply only the it
       setLoading(false);
       setLocked(false);
     }
-  }, [lastResultPath, feedback, value, effectiveAspect, fetch, onChange, setLocked]);
+  }, [lastResultPath, feedback, value, effectiveAspect, fetch, onChange, setLocked, t]);
 
   const startFlow = useCallback(
     (stylePrompt: string, presetAspect?: string | null) => async () => {

@@ -12,6 +12,7 @@ import {
   Sections,
   SubscriptionException,
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
+import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
 
 @Injectable()
 export class MediaService {
@@ -62,7 +63,6 @@ export class MediaService {
 
         if (generatePromptFirst) {
           prompt = await this._openAi.generatePromptForPicture(userId!, prompt);
-          console.log('Prompt:', prompt);
         }
         return this._openAi.generateImage(
           userId!,
@@ -111,16 +111,28 @@ export class MediaService {
   private async fetchAsReference(
     url: string
   ): Promise<{ mimeType: string; base64: string } | null> {
+    // The URL is organization-admin configurable, so block SSRF vectors
+    // (loopback, private, link-local) via the same guard used for webhooks
+    // and cap the request with a timeout so a slow host can't stall gen.
+    if (!(await isSafePublicHttpsUrl(url))) return null;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal });
       if (!res.ok) return null;
-      const contentType = res.headers.get('content-type') || 'image/png';
+      const contentType = (res.headers.get('content-type') || 'image/png')
+        .split(';')[0]
+        .trim()
+        .toLowerCase();
+      if (!contentType.startsWith('image/')) return null;
       const buffer = Buffer.from(await res.arrayBuffer());
-      // Defensive upper bound so a misconfigured URL can't blow up the payload.
       if (buffer.length > 4 * 1024 * 1024) return null;
       return { mimeType: contentType, base64: buffer.toString('base64') };
     } catch {
       return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

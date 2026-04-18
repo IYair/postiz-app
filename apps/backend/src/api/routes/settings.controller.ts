@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
 import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
@@ -103,21 +112,32 @@ export class SettingsController {
 
   @Put('/image-presets/:id')
   @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
-  updateImagePreset(
+  async updateImagePreset(
     @GetOrgFromRequest() org: Organization,
     @Param('id') id: string,
     @Body() body: ImagePresetDto
   ) {
-    return this._imagePresetRepository.update(org.id, id, body);
+    // updateMany is used so the org scope is enforced in the where clause.
+    // It returns count=0 instead of throwing when the preset does not exist
+    // or does not belong to the caller's org, so translate that into 404.
+    const result = await this._imagePresetRepository.update(org.id, id, body);
+    if (result.count === 0) {
+      throw new NotFoundException('Image preset not found');
+    }
+    return result;
   }
 
   @Delete('/image-presets/:id')
   @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
-  deleteImagePreset(
+  async deleteImagePreset(
     @GetOrgFromRequest() org: Organization,
     @Param('id') id: string
   ) {
-    return this._imagePresetRepository.delete(org.id, id);
+    const result = await this._imagePresetRepository.delete(org.id, id);
+    if (result.count === 0) {
+      throw new NotFoundException('Image preset not found');
+    }
+    return result;
   }
 
   @Get('/brand-kit')
