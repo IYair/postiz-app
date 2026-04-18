@@ -94,15 +94,32 @@ const LoadMessages: FC<{ id: string }> = ({ id }) => {
   const loadMessages = useCallback(async (idToSet: string) => {
     try {
       const data = await (await fetch(`/copilot/${idToSet}/list`)).json();
-      const uiMessages = Array.isArray(data?.uiMessages) ? data.uiMessages : [];
+      const raw = Array.isArray(data?.uiMessages)
+        ? data.uiMessages
+        : Array.isArray(data?.messages)
+        ? data.messages
+        : [];
+      const toText = (content: any): string => {
+        if (typeof content === 'string') return content;
+        if (content?.content && typeof content.content === 'string')
+          return content.content;
+        if (Array.isArray(content?.parts)) {
+          return content.parts
+            .map((p: any) => (typeof p?.text === 'string' ? p.text : ''))
+            .join('\n');
+        }
+        return '';
+      };
       setMessages(
-        uiMessages.map(
-          (p: any) =>
-            new TextMessage({
-              content: p.content,
-              role: p.role,
-            })
-        )
+        raw
+          .map(
+            (p: any) =>
+              new TextMessage({
+                content: toText(p.content),
+                role: p.role,
+              })
+          )
+          .filter((m: any) => m.content)
       );
     } catch (err) {
       console.error('Failed to load thread messages', err);
