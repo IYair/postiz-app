@@ -86,10 +86,9 @@ const ImagePromptExtraComponent = () => {
         name="imagePromptExtra"
         label=""
         disableForm={true}
-        hideErrors={true}
         value={localValue}
         onChange={(event) => setLocalValue(event.target.value)}
-        rows={8}
+        className="min-h-[180px]"
         placeholder={t(
           'image_prompt_extra_placeholder',
           'Example: Minimalist tech illustration. Palette #0066FF + #000814. No humans or faces. Geometric shapes. Brand watermark bottom-right.'

@@ -124,7 +124,7 @@ const ImagePresetsComponent = () => {
             name="presetName"
             label={t('name', 'Name')}
             disableForm={true}
-            hideErrors={true}
+            removeError={true}
             value={form.name}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setForm({ ...form, name: e.target.value })
@@ -135,12 +135,11 @@ const ImagePresetsComponent = () => {
             name="presetStyle"
             label={t('style_prompt', 'Style prompt')}
             disableForm={true}
-            hideErrors={true}
             value={form.stylePrompt}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
               setForm({ ...form, stylePrompt: e.target.value })
             }
-            rows={5}
+            className="min-h-[110px]"
             placeholder="Minimalist tech illustration, brand palette, no humans..."
           />
           <Select

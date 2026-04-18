@@ -4,9 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Input } from '@gitroom/react/form/input';
-import { Textarea } from '@gitroom/react/form/textarea';
 import { Button } from '@gitroom/react/form/button';
-import { Checkbox } from '@gitroom/react/form/checkbox';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
@@ -94,7 +92,7 @@ const BrandKitComponent = () => {
         name="brandLogoUrl"
         label={t('brand_logo_url', 'Brand logo URL')}
         disableForm={true}
-        hideErrors={true}
+        removeError={true}
         value={logoUrl}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           setLogoUrl(e.target.value)
@@ -111,7 +109,7 @@ const BrandKitComponent = () => {
         name="brandColors"
         label={t('brand_colors', 'Brand colors')}
         disableForm={true}
-        hideErrors={true}
+        removeError={true}
         value={colors}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           setColors(e.target.value)
@@ -122,7 +120,7 @@ const BrandKitComponent = () => {
         name="brandTypography"
         label={t('brand_typography', 'Typography')}
         disableForm={true}
-        hideErrors={true}
+        removeError={true}
         value={typography}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           setTypography(e.target.value)
