@@ -130,4 +130,31 @@ export class OrganizationService {
       shortlink
     );
   }
+
+  getImagePromptExtra(orgId: string) {
+    return this._organizationRepository.getImagePromptExtra(orgId);
+  }
+
+  updateImagePromptExtra(orgId: string, imagePromptExtra: string | null) {
+    return this._organizationRepository.updateImagePromptExtra(
+      orgId,
+      imagePromptExtra
+    );
+  }
+
+  getBrandKit(orgId: string) {
+    return this._organizationRepository.getBrandKit(orgId);
+  }
+
+  updateBrandKit(
+    orgId: string,
+    data: {
+      brandKitEnabled: boolean;
+      brandLogoUrl?: string | null;
+      brandColors?: string | null;
+      brandTypography?: string | null;
+    }
+  ) {
+    return this._organizationRepository.updateBrandKit(orgId, data);
+  }
 }

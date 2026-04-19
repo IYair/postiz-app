@@ -15,18 +15,24 @@ export const EncryptedKeysSchema = z.object({
 
 export type EncryptedKeys = z.infer<typeof EncryptedKeysSchema>;
 
-// DALL-E size mapping
+// DALL-E size mapping. DALL-E 3 supports only 3 sizes natively.
+// We map 'portrait' (4:5 approximation) to the closest 1024x1792 (9:16).
+// 'story' also maps to 1024x1792 since DALL-E lacks a 9:16-specific size.
 export const DALLE_SIZE_MAP: Record<string, string> = {
   square: '1024x1024',
   landscape: '1792x1024',
   portrait: '1024x1792',
+  story: '1024x1792',
 };
 
-// Gemini Imagen aspect ratio mapping
+// Gemini Imagen aspect ratio mapping.
+// 'portrait' is now 3:4 (closest to LinkedIn 4:5 feed standard).
+// 'story' keeps 9:16 for IG/FB stories and reels.
 export const GEMINI_ASPECT_MAP: Record<string, string> = {
   square: '1:1',
   landscape: '16:9',
-  portrait: '9:16',
+  portrait: '3:4',
+  story: '9:16',
 };
 
 // Default models per provider

@@ -43,6 +43,7 @@ import { OAuthRepository } from '@gitroom/nestjs-libraries/database/prisma/oauth
 import { OAuthService } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.service';
 import { AnnouncementsRepository } from '@gitroom/nestjs-libraries/database/prisma/announcements/announcements.repository';
 import { AnnouncementsService } from '@gitroom/nestjs-libraries/database/prisma/announcements/announcements.service';
+import { ImagePresetRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/image-preset.repository';
 
 @Global()
 @Module({
@@ -95,6 +96,7 @@ import { AnnouncementsService } from '@gitroom/nestjs-libraries/database/prisma/
     AiProviderResolver,
     AiConfigService,
     AiConfigRepository,
+    ImagePresetRepository,
   ],
   get exports() {
     return this.providers;

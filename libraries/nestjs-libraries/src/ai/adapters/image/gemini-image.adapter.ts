@@ -10,13 +10,33 @@ export class GeminiImageAdapter implements ImageProvider {
   }
 
   async generateImage(prompt: string, options?: ImageOptions): Promise<Buffer> {
-    const aspectRatio = GEMINI_ASPECT_MAP[options?.aspectRatio ?? 'square'] ?? '1:1';
+    const aspectRatio =
+      GEMINI_ASPECT_MAP[options?.aspectRatio ?? 'square'] ?? '1:1';
 
-    // Gemini native image models (gemini-*-image-*) use generateContent
+    // Gemini native image models (gemini-*-image-*) use generateContent.
+    // Multi-turn parts: reference images go BEFORE the text prompt so the
+    // model treats them as style/content anchors.
     const model = this.genAI.getGenerativeModel({ model: this.model });
 
+    const parts: Array<
+      { text: string } | { inlineData: { mimeType: string; data: string } }
+    > = [];
+
+    if (options?.referenceImages?.length) {
+      for (const ref of options.referenceImages) {
+        parts.push({
+          inlineData: {
+            mimeType: ref.mimeType,
+            data: ref.base64,
+          },
+        });
+      }
+    }
+
+    parts.push({ text: prompt });
+
     const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      contents: [{ role: 'user', parts }],
       generationConfig: {
         // @ts-ignore - responseModalities not in SDK types yet
         responseModalities: ['TEXT', 'IMAGE'],

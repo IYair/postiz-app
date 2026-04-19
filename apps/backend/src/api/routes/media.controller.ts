@@ -23,6 +23,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CustomFileValidationPipe } from '@gitroom/nestjs-libraries/upload/custom.upload.validation';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
+import {
+  ExpandImagePromptDto,
+  GenerateImageDto,
+} from '@gitroom/nestjs-libraries/dtos/media/generate-image.dto';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
@@ -41,6 +45,22 @@ export class MediaController {
     return this._mediaService.deleteMedia(org.id, id);
   }
 
+  @Post('/expand-image-prompt')
+  async expandImagePrompt(
+    @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
+    @Body() body: ExpandImagePromptDto
+  ) {
+    // Returns the LLM-expanded prompt so the user can review/edit before
+    // spending a credit on image generation (feature 2C).
+    const expanded = await this._mediaService.expandImagePrompt(
+      user.id,
+      body.prompt,
+      org
+    );
+    return { prompt: expanded };
+  }
+
   @Post('/generate-video')
   generateVideo(
     @GetOrgFromRequest() org: Organization,
@@ -55,14 +75,21 @@ export class MediaController {
   async generateImage(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
-    @Body('prompt') prompt: string
+    @Body() body: GenerateImageDto
   ) {
     const total = await this._subscriptionService.checkCredits(org);
     if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
       return false;
     }
 
-    const result = await this._mediaService.generateImage(prompt, org, false, user.id);
+    const result = await this._mediaService.generateImage(
+      body.prompt,
+      org,
+      false,
+      user.id,
+      body.aspectRatio ?? 'square',
+      body.referenceImages
+    );
     const base64 = Buffer.isBuffer(result)
       ? result.toString('base64')
       : result;
@@ -76,14 +103,25 @@ export class MediaController {
   async generateImageFromText(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
-    @Body('prompt') prompt: string
+    @Body() body: GenerateImageDto
   ) {
     const total = await this._subscriptionService.checkCredits(org);
     if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
       return false;
     }
 
-    const result = await this._mediaService.generateImage(prompt, org, true, user.id);
+    // When skipExpansion is true, the caller passed an already-expanded prompt
+    // (feature 2C: "preview & edit final prompt"), so we bypass LLM expansion.
+    // Default aspectRatio matches /generate-image for consistency; the frontend
+    // always sends an explicit value resolved from the platform selection.
+    const result = await this._mediaService.generateImage(
+      body.prompt,
+      org,
+      !body.skipExpansion,
+      user.id,
+      body.aspectRatio ?? 'square',
+      body.referenceImages
+    );
     if (!result) {
       return false;
     }
