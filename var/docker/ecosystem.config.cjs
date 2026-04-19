@@ -17,7 +17,7 @@ module.exports = {
       interpreter: 'node',
       exec_mode: 'fork',
       instances: 1,
-      max_memory_restart: '1G',
+      max_memory_restart: '2G',
       kill_timeout: 10000,
       env: {
         NODE_ENV: 'production',
@@ -25,13 +25,18 @@ module.exports = {
       },
     },
     {
+      // Orchestrator loads a webpack-compiled workflow bundle per Temporal
+      // task queue (~30 social platforms + internals). Steady-state memory
+      // lands around 2GB, which used to collide with a 1GB max_memory_restart
+      // and spin PM2 into a crash loop (~2 restarts/min). 3GB gives 50%
+      // headroom over the observed footprint.
       name: 'orchestrator',
       cwd: '/app/apps/orchestrator',
       script: 'dist/apps/orchestrator/src/main.js',
       interpreter: 'node',
       exec_mode: 'fork',
       instances: 1,
-      max_memory_restart: '1G',
+      max_memory_restart: '3G',
       kill_timeout: 10000,
       env: {
         NODE_ENV: 'production',
@@ -45,7 +50,7 @@ module.exports = {
       interpreter: 'node',
       exec_mode: 'fork',
       instances: 1,
-      max_memory_restart: '1G',
+      max_memory_restart: '1536M',
       kill_timeout: 10000,
       env: {
         NODE_ENV: 'production',
