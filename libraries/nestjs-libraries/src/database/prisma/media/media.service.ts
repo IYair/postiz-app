@@ -14,6 +14,15 @@ import {
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
 
+const ALLOWED_REFERENCE_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+]);
+
 @Injectable()
 export class MediaService {
   private storage = UploadFactory.createStorage();
@@ -45,7 +54,14 @@ export class MediaService {
       org,
       'ai_images',
       async () => {
-        prompt = this.applyBrandContext(prompt, org);
+        // Only inject brand context when the caller expects us to expand the
+        // prompt. When generatePromptFirst is false the caller already sent
+        // an expanded prompt (preview-and-edit flow) that was produced via
+        // /media/expand-image-prompt — which ran applyBrandContext already.
+        // Re-applying here would duplicate the brand blocks in the final prompt.
+        if (generatePromptFirst) {
+          prompt = this.applyBrandContext(prompt, org);
+        }
 
         // When brand kit is enabled and the caller didn't supply references,
         // auto-attach the brand logo so the generator uses it as style anchor.
@@ -127,11 +143,13 @@ export class MediaService {
       });
       if (!res.ok) return null;
 
-      const contentType = (res.headers.get('content-type') || 'image/png')
-        .split(';')[0]
-        .trim()
-        .toLowerCase();
-      if (!contentType.startsWith('image/')) return null;
+      // Match the allow-list enforced by ImageReferenceDto for user-provided
+      // references so the brand-kit path can't silently push types (e.g. SVG,
+      // missing header) that would fail downstream in the image provider.
+      const rawContentType = res.headers.get('content-type');
+      if (!rawContentType) return null;
+      const contentType = rawContentType.split(';')[0].trim().toLowerCase();
+      if (!ALLOWED_REFERENCE_MIME_TYPES.has(contentType)) return null;
 
       // Enforce size upfront when Content-Length is advertised. For chunked
       // responses without a header we fall back to a streamed counter below.

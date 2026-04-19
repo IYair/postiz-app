@@ -189,21 +189,41 @@ export const AiImage: FC<{
           },
         ];
       }
-      const image = await (
-        await fetch('/media/generate-image-with-prompt', {
+      try {
+        const res = await fetch('/media/generate-image-with-prompt', {
           method: 'POST',
           body: JSON.stringify(body),
-        })
-      ).json();
-      setLoading(false);
-      setLocked(false);
-      setModal(null);
-      if (image?.path) {
-        setLastResultPath(image.path);
+        });
+        if (!res.ok) {
+          window.alert(
+            t(
+              'image_generation_failed',
+              'Image generation failed (HTTP ' + res.status + '). Try again.'
+            )
+          );
+          return;
+        }
+        const image = await res.json();
+        setModal(null);
+        if (image?.path) {
+          setLastResultPath(image.path);
+        }
+        onChange(image);
+      } catch (err) {
+        window.alert(
+          t(
+            'image_generation_error',
+            'Image generation failed. Check your connection and try again.'
+          )
+        );
+      } finally {
+        // Always release the compose UI lock so a failed request can't leave
+        // the editor stuck in a loading state with no way to recover.
+        setLoading(false);
+        setLocked(false);
       }
-      onChange(image);
     },
-    [fetch, onChange, referenceImage, setLocked]
+    [fetch, onChange, referenceImage, setLocked, t]
   );
 
   const regenerateWithFeedback = useCallback(async () => {
@@ -227,6 +247,21 @@ export const AiImage: FC<{
         return;
       }
       const blob = await resp.blob();
+      // The previous image comes from Postiz storage and has no inherent size
+      // cap; reference images the backend accepts are bounded to 4MB decoded
+      // (ImageReferenceDto.base64 validator). Check upfront so the user gets
+      // a clear message instead of a silent 400 from the API.
+      if (blob.size > MAX_REFERENCE_SIZE_BYTES) {
+        setLoading(false);
+        setLocked(false);
+        window.alert(
+          t(
+            'previous_image_too_large',
+            'The previous image is larger than 4MB and cannot be used as a reference. Generate a new smaller image first.'
+          )
+        );
+        return;
+      }
       // FileReader is non-blocking and handles the base64 encoding natively,
       // avoiding the quadratic string concat that used to freeze the tab on
       // multi-MB images.
@@ -300,22 +335,40 @@ Keep the overall style and composition of the reference image, apply only the it
       // Preview mode: ask backend to expand, show modal editable
       setLoading(true);
       setLocked(true);
-      const { prompt: expanded } = await (
-        await fetch('/media/expand-image-prompt', {
+      try {
+        const res = await fetch('/media/expand-image-prompt', {
           method: 'POST',
           body: JSON.stringify({ prompt: rawPrompt }),
-        })
-      ).json();
-      setLoading(false);
-      setLocked(false);
-      setModal({
-        style: stylePrompt,
-        stylePrompt: rawPrompt,
-        expandedPrompt: expanded,
-        aspect: aspectForRequest,
-      });
+        });
+        if (!res.ok) {
+          window.alert(
+            t(
+              'prompt_expansion_failed',
+              'Prompt expansion failed (HTTP ' + res.status + '). Try again.'
+            )
+          );
+          return;
+        }
+        const { prompt: expanded } = await res.json();
+        setModal({
+          style: stylePrompt,
+          stylePrompt: rawPrompt,
+          expandedPrompt: expanded,
+          aspect: aspectForRequest,
+        });
+      } catch (err) {
+        window.alert(
+          t(
+            'prompt_expansion_error',
+            'Prompt expansion failed. Check your connection and try again.'
+          )
+        );
+      } finally {
+        setLoading(false);
+        setLocked(false);
+      }
     },
-    [value, effectiveAspect, previewMode, doGenerate, fetch, setLocked]
+    [value, effectiveAspect, previewMode, doGenerate, fetch, setLocked, t]
   );
 
   const confirmFromModal = useCallback(async () => {
