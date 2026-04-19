@@ -128,6 +128,7 @@ export const AiImage: FC<{
     stylePrompt: string;
     style: string;
     expandedPrompt: string;
+    aspect: AspectRatio;
   } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -164,12 +165,20 @@ export const AiImage: FC<{
   );
 
   const doGenerate = useCallback(
-    async (finalPrompt: string, skipExpansion: boolean) => {
+    async (
+      finalPrompt: string,
+      skipExpansion: boolean,
+      aspectForRequest: AspectRatio
+    ) => {
+      // aspectForRequest is passed explicitly because setState is async —
+      // reading effectiveAspect from the closure right after setAspectRatio
+      // would still see the previous value and send the wrong ratio to the
+      // server. Callers compute the final aspect locally and pass it in.
       setLoading(true);
       setLocked(true);
       const body: any = {
         prompt: finalPrompt,
-        aspectRatio: effectiveAspect,
+        aspectRatio: aspectForRequest,
         skipExpansion,
       };
       if (referenceImage) {
@@ -194,7 +203,7 @@ export const AiImage: FC<{
       }
       onChange(image);
     },
-    [effectiveAspect, fetch, onChange, referenceImage, setLocked]
+    [fetch, onChange, referenceImage, setLocked]
   );
 
   const regenerateWithFeedback = useCallback(async () => {
@@ -270,15 +279,22 @@ Keep the overall style and composition of the reference image, apply only the it
 
   const startFlow = useCallback(
     (stylePrompt: string, presetAspect?: string | null) => async () => {
+      // Resolve the aspect ratio for THIS request before any setState, so
+      // the request body reflects the preset's default even though the
+      // React state update hasn't flushed yet.
+      let aspectForRequest: AspectRatio = effectiveAspect;
       if (
         presetAspect &&
-        ASPECT_RATIOS.some((r) => r.value === presetAspect && r.value !== 'auto')
+        ASPECT_RATIOS.some(
+          (r) => r.value === presetAspect && r.value !== 'auto'
+        )
       ) {
-        setAspectRatio(presetAspect as AspectRatio);
+        aspectForRequest = presetAspect as AspectRatio;
+        setAspectRatio(aspectForRequest);
       }
       const rawPrompt = buildPrompt(value, stylePrompt);
       if (!previewMode) {
-        await doGenerate(rawPrompt, false);
+        await doGenerate(rawPrompt, false, aspectForRequest);
         return;
       }
       // Preview mode: ask backend to expand, show modal editable
@@ -296,14 +312,15 @@ Keep the overall style and composition of the reference image, apply only the it
         style: stylePrompt,
         stylePrompt: rawPrompt,
         expandedPrompt: expanded,
+        aspect: aspectForRequest,
       });
     },
-    [value, previewMode, doGenerate, fetch, setLocked]
+    [value, effectiveAspect, previewMode, doGenerate, fetch, setLocked]
   );
 
   const confirmFromModal = useCallback(async () => {
     if (!modal) return;
-    await doGenerate(modal.expandedPrompt, true);
+    await doGenerate(modal.expandedPrompt, true, modal.aspect);
   }, [modal, doGenerate]);
 
   const mergedStyles = useMemo(() => {

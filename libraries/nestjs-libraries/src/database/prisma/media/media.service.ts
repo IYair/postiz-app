@@ -112,22 +112,48 @@ export class MediaService {
     url: string
   ): Promise<{ mimeType: string; base64: string } | null> {
     // The URL is organization-admin configurable, so block SSRF vectors
-    // (loopback, private, link-local) via the same guard used for webhooks
-    // and cap the request with a timeout so a slow host can't stall gen.
+    // (loopback, private, link-local) via the same guard used for webhooks,
+    // reject redirects so the guard can't be bypassed by a 3xx to an
+    // internal address, and cap the request with a timeout + size guard.
     if (!(await isSafePublicHttpsUrl(url))) return null;
 
+    const MAX_BYTES = 4 * 1024 * 1024;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
-      const res = await fetch(url, { signal: controller.signal });
+      const res = await fetch(url, {
+        signal: controller.signal,
+        redirect: 'error',
+      });
       if (!res.ok) return null;
+
       const contentType = (res.headers.get('content-type') || 'image/png')
         .split(';')[0]
         .trim()
         .toLowerCase();
       if (!contentType.startsWith('image/')) return null;
-      const buffer = Buffer.from(await res.arrayBuffer());
-      if (buffer.length > 4 * 1024 * 1024) return null;
+
+      // Enforce size upfront when Content-Length is advertised. For chunked
+      // responses without a header we fall back to a streamed counter below.
+      const advertised = Number(res.headers.get('content-length') ?? '');
+      if (Number.isFinite(advertised) && advertised > MAX_BYTES) return null;
+
+      if (!res.body) return null;
+      const reader = res.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let received = 0;
+      while (true) {
+        const { value: chunk, done } = await reader.read();
+        if (done) break;
+        if (!chunk) continue;
+        received += chunk.byteLength;
+        if (received > MAX_BYTES) {
+          controller.abort();
+          return null;
+        }
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks.map((c) => Buffer.from(c)), received);
       return { mimeType: contentType, base64: buffer.toString('base64') };
     } catch {
       return null;

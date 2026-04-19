@@ -23,7 +23,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CustomFileValidationPipe } from '@gitroom/nestjs-libraries/upload/custom.upload.validation';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
-import { GenerateImageDto } from '@gitroom/nestjs-libraries/dtos/media/generate-image.dto';
+import {
+  ExpandImagePromptDto,
+  GenerateImageDto,
+} from '@gitroom/nestjs-libraries/dtos/media/generate-image.dto';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
@@ -46,13 +49,13 @@ export class MediaController {
   async expandImagePrompt(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
-    @Body('prompt') prompt: string
+    @Body() body: ExpandImagePromptDto
   ) {
     // Returns the LLM-expanded prompt so the user can review/edit before
     // spending a credit on image generation (feature 2C).
     const expanded = await this._mediaService.expandImagePrompt(
       user.id,
-      prompt,
+      body.prompt,
       org
     );
     return { prompt: expanded };
